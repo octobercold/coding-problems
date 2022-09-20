@@ -1,4 +1,3 @@
-const { maxHeaderSize } = require("http");
 const fileReader = require("../fileReader");
 
 const lines = fileReader();
