@@ -7,16 +7,20 @@ const lines = fileReader().map((line) => {
 
 const followCommands = (commands) => {
     let d = 0,
-        x = 0;
+        x = 0,
+        aim = 0;
     for (const [direction, step] of commands) {
         if (direction === "forward") {
             x += step;
+            d += aim * step;
         } else if (direction === "up") {
-            d -= step;
+            aim -= step;
         } else {
             //down
-            d += step;
+            aim += step;
         }
     }
     return d * x;
 };
+
+console.log(followCommands(commands));
