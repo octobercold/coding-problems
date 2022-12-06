@@ -2,52 +2,57 @@ import * as fs from "fs";
 
 const fileReader = () => {
     //returns list of strings separated by \n
-    const string = fs.readFileSync("./day3/input.txt", { encoding: "utf-8" });
+    const string = fs.readFileSync("./day4/input.txt", { encoding: "utf-8" });
     return string.split("\n");
 };
 
-const lines = fileReader()
+const lines = fileReader();
 
-const priorities = new Map()
-
-for (let i=0;i<26;i++) {
-    priorities.set(String.fromCharCode(97+i),i+1)
-    priorities.set(String.fromCharCode(65+i),i+27)
-}
+const parseLine = (line) => {
+    const pairs = line.split(",");
+    const ranges = [];
+    for (const pair of pairs) {
+        ranges.push(pair.split("-"));
+    }
+    const range1 = ranges[0];
+    const range2 = ranges[1];
+    const start1 = parseInt(range1[0]);
+    const end1 = parseInt(range1[1]);
+    const start2 = parseInt(range2[0]);
+    const end2 = parseInt(range2[1]);
+    return { start1: start1, start2: start2, end1: end1, end2: end2 };
+};
 
 const partOne = () => {
-    let prioritiesSum = 0
-
+    let nOverlapping = 0;
     for (const line of lines) {
-        const leftSet = new Set(line.slice(0,line.length/2))
-        const rightSet = new Set(line.slice(line.length/2,line.length))
-        for (const char of leftSet) {
-            if (rightSet.has(char)) {
-                prioritiesSum += priorities.get(char)
-                break
-            }
+        const { start1, start2, end1, end2 } = parseLine(line);
+        if (start1 >= start2 && end1 <= end2) {
+            nOverlapping += 1;
+        } else if (start2 >= start1 && end2 <= end1) {
+            nOverlapping += 1;
         }
     }
-    return prioritiesSum
-}
+    return nOverlapping;
+};
 
 const partTwo = () => {
-    let prioritiesSum = 0
-    for (let i=0;i<lines.length-2;i+=3) {
-        //console.log(`showing line ${i}, line ${i+1}, line ${i+2}`)
-        const set1=new Set(lines[i])
-        const set2=new Set(lines[i+1])
-        const set3=new Set(lines[i+2])
-        for (const char of set1) {
-            if (set2.has(char) && set3.has(char)) {
-                prioritiesSum += priorities.get(char)
-                break
-            }
+    let nOverlapping = 0;
+    for (const line of lines) {
+        const { start1, start2, end1, end2 } = parseLine(line);
+        if (start1 >= start2 && end1 <= end2) {
+            nOverlapping += 1;
+        } else if (start2 >= start1 && end2 <= end1) {
+            nOverlapping += 1;
+        } else if (start1 >= start2 && start1 <= end2) {
+            nOverlapping += 1;
+        } else if (end1 >= start2 && end1 <= end2) {
+            nOverlapping += 1;
         }
     }
-    
-    return prioritiesSum
-}
 
+    return nOverlapping;
+};
 
-console.log(partTwo())
+console.log(partOne());
+console.log(partTwo());
