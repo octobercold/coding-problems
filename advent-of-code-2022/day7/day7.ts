@@ -39,20 +39,25 @@ class Dir {
 class Tree {
     root: Dir | null;
     currentDir: Dir | null;
+    sumOfSmallDirs: number;
     constructor() {
         this.root = null;
         this.currentDir = null;
+        this.sumOfSmallDirs = 0;
     }
 
     insertDir(name: string) {
         if (this.root === null) {
             const newDir = new Dir(name);
             this.root = newDir;
-            this.currentDir = this.root;
+            console.log(`insert dir ${newDir.name} as root`);
         } else {
             const parentDir = this.currentDir;
             const newDir = new Dir(name, parentDir);
             this.currentDir.addChild(newDir);
+            console.log(
+                `insert dir ${newDir.name} to dir ${this.currentDir.name}`
+            );
         }
     }
 
@@ -62,11 +67,73 @@ class Tree {
         }
         const newFile = new File(name, size);
         this.currentDir.children.push(newFile);
+
+        const tempSize = this.currentDir.size;
+
         this.currentDir.size += size;
+        console.log(
+            `insert file ${newFile.name} with size: ${newFile.size} to dir ${this.currentDir.name}`
+        );
+        console.log(
+            `dir ${this.currentDir.name} size changed from ${tempSize} to ${this.currentDir.size}`
+        );
         let dir = this.currentDir;
+        console.log(`update all parent dir sizes`);
         while (dir.parentDir !== null) {
+            const tempSize2 = dir.parentDir.size;
             dir.parentDir.size += size;
+            console.log(
+                `update ${dir.parentDir.name} size from ${tempSize2} to ${dir.parentDir.size}`
+            );
             dir = dir.parentDir;
+        }
+    }
+
+    cd(name: string) {
+        if (this.currentDir === null) {
+            this.currentDir = this.root;
+            console.log(`enter root ${this.currentDir.name}`);
+        } else if (name === "..") {
+            this.currentDir = this.currentDir.parentDir;
+            console.log(`enter parent directory ${this.currentDir.name}`);
+        } else {
+            this.currentDir = this.currentDir.children.filter(
+                (item) => item.name === name
+            )[0] as Dir;
+            console.log(`enter dir ${this.currentDir.name}`);
+        }
+    }
+
+    preorderPrint(node: Dir | File, level = 0) {
+        if (!node) return;
+        if (node instanceof File) {
+            console.log(
+                `${"  ".repeat(level)} - ${node.name} (file, size=${node.size})`
+            );
+        } else {
+            console.log(
+                `${"  ".repeat(level)} - ${node.name} (dir size=${node.size})`
+            );
+            if (node.size < 100000) {
+                this.sumOfSmallDirs += node.size;
+            }
+            for (const child of node.children) {
+                this.preorderPrint(child, level + 1);
+            }
+        }
+    }
+
+    findSmallDirs(node: Dir | File) {
+        if (!node) return;
+        if (node instanceof File) {
+            return;
+        } else {
+            if (node.size <= 100000) {
+                this.sumOfSmallDirs += node.size;
+            }
+            for (const child of node.children) {
+                this.findSmallDirs(child);
+            }
         }
     }
 }
@@ -74,7 +141,12 @@ class Tree {
 const tree = new Tree();
 tree.insertDir("/");
 for (const line of lines) {
-    if (line[0] !== "$") {
+    if (line[0] === "$") {
+        if (line[2] === "c") {
+            const dirName = line.slice(line.indexOf("d") + 2);
+            tree.cd(dirName);
+        }
+    } else {
         if (line[0] === "d") {
             const dirName = line.slice(line.indexOf(" ") + 1);
             tree.insertDir(dirName);
@@ -86,8 +158,5 @@ for (const line of lines) {
     }
 }
 
-// for (const node of Object.entries(tree)) {
-//     console.log(node);
-// }
-
-console.log(tree.root.children);
+tree.preorderPrint(tree.root);
+console.log(tree.sumOfSmallDirs);
