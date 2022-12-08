@@ -40,10 +40,12 @@ class Tree {
     root: Dir | null;
     currentDir: Dir | null;
     sumOfSmallDirs: number;
+    candidatesForDeletion: number[];
     constructor() {
         this.root = null;
         this.currentDir = null;
         this.sumOfSmallDirs = 0;
+        this.candidatesForDeletion = [];
     }
 
     insertDir(name: string) {
@@ -117,22 +119,11 @@ class Tree {
             if (node.size < 100000) {
                 this.sumOfSmallDirs += node.size;
             }
+            if (node.size >= this.root.size - 40000000) {
+                this.candidatesForDeletion.push(node.size);
+            }
             for (const child of node.children) {
                 this.preorderPrint(child, level + 1);
-            }
-        }
-    }
-
-    findSmallDirs(node: Dir | File) {
-        if (!node) return;
-        if (node instanceof File) {
-            return;
-        } else {
-            if (node.size <= 100000) {
-                this.sumOfSmallDirs += node.size;
-            }
-            for (const child of node.children) {
-                this.findSmallDirs(child);
             }
         }
     }
@@ -160,3 +151,5 @@ for (const line of lines) {
 
 tree.preorderPrint(tree.root);
 console.log(tree.sumOfSmallDirs);
+console.log(`${tree.root.size - 40000000} required for installation`);
+console.log(Math.min(...tree.candidatesForDeletion));
