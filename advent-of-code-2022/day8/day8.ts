@@ -1,5 +1,4 @@
 import * as fs from "fs";
-import test from "node:test";
 
 const fileReader = () => {
     //returns list of strings separated by \n
@@ -14,7 +13,7 @@ for (const line of lines) {
 }
 trees = trees.map((t) => (t = t.map((tt) => parseInt(tt))));
 
-console.log(trees);
+//console.log(trees);
 
 const partOne = (): number => {
     const checkTop = (starti: number, startj: number): boolean => {
@@ -62,44 +61,44 @@ const partOne = (): number => {
     for (let i = 0; i < trees.length; i++) {
         for (let j = 0; j < trees[i].length; j++) {
             if (i === 0 || i === trees.length) {
-                console.log(
-                    `tree height ${trees[i][j]} at [${i},${j}] is at the top or bottom edge`
-                );
+                // console.log(
+                //     `tree height ${trees[i][j]} at [${i},${j}] is at the top or bottom edge`
+                // );
                 numberOfVisibleTrees++;
                 continue;
             }
             if (j === 0 || j === trees[i].length) {
-                console.log(
-                    `tree height ${trees[i][j]} at [${i},${j}] is at the left or right edge`
-                );
+                // console.log(
+                //     `tree height ${trees[i][j]} at [${i},${j}] is at the left or right edge`
+                // );
                 numberOfVisibleTrees++;
                 continue;
             }
             if (checkTop(i, j)) {
-                console.log(
-                    `tree height ${trees[i][j]} at [${i},${j}] is visible from top`
-                );
+                // console.log(
+                //     `tree height ${trees[i][j]} at [${i},${j}] is visible from top`
+                // );
                 numberOfVisibleTrees++;
                 continue;
             }
             if (checkRight(i, j)) {
-                console.log(
-                    `tree height ${trees[i][j]} at [${i},${j}] is visible from right`
-                );
+                // console.log(
+                //     `tree height ${trees[i][j]} at [${i},${j}] is visible from right`
+                // );
                 numberOfVisibleTrees++;
                 continue;
             }
             if (checkDown(i, j)) {
-                console.log(
-                    `tree height ${trees[i][j]} at [${i},${j}] is visible from bottom`
-                );
+                // console.log(
+                //     `tree height ${trees[i][j]} at [${i},${j}] is visible from bottom`
+                // );
                 numberOfVisibleTrees++;
                 continue;
             }
             if (checkLeft(i, j)) {
-                console.log(
-                    `tree height ${trees[i][j]} at [${i},${j}] is visible from left`
-                );
+                // console.log(
+                //     `tree height ${trees[i][j]} at [${i},${j}] is visible from left`
+                // );
                 numberOfVisibleTrees++;
                 continue;
             }
@@ -158,32 +157,32 @@ const partTwo = (): number => {
             rightScore = 0;
         for (let j = 1; j < trees[i].length - 1; j++) {
             topScore = checkTop(i, j);
-            console.log(
-                `top score for ${trees[i][j]} at [${i},${j}] is ${topScore}`
-            );
+            // console.log(
+            //     `top score for ${trees[i][j]} at [${i},${j}] is ${topScore}`
+            // );
             leftScore = checkLeft(i, j);
-            console.log(
-                `left score for ${trees[i][j]} at [${i},${j}] is ${leftScore}`
-            );
+            // console.log(
+            //     `left score for ${trees[i][j]} at [${i},${j}] is ${leftScore}`
+            // );
             bottomScore = checkDown(i, j);
-            console.log(
-                `bottom score for ${trees[i][j]} at [${i},${j}] is ${bottomScore}`
-            );
+            // console.log(
+            //     `bottom score for ${trees[i][j]} at [${i},${j}] is ${bottomScore}`
+            // );
             rightScore = checkRight(i, j);
-            console.log(
-                `right score for ${trees[i][j]} at [${i},${j}] is ${rightScore}`
-            );
+            // console.log(
+            //     `right score for ${trees[i][j]} at [${i},${j}] is ${rightScore}`
+            // );
 
-            console.log(
-                `total score for ${i},${j} coordinates ${
-                    topScore * leftScore * bottomScore * rightScore
-                }`
-            );
+            // console.log(
+            //     `total score for ${i},${j} coordinates ${
+            //         topScore * leftScore * bottomScore * rightScore
+            //     }`
+            // );
             scenicScore = Math.max(
                 scenicScore,
                 topScore * leftScore * bottomScore * rightScore
             );
-            console.log(`new best score ${scenicScore}`);
+            //console.log(`new best score ${scenicScore}`);
         }
     }
     return scenicScore;
