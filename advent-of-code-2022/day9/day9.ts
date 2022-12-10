@@ -8,10 +8,6 @@ const fileReader = () => {
 
 const lines = fileReader();
 
-const visitedCoordinates = { "0,0": 1 };
-const h = { x: 0, y: 0 };
-const t = { x: 0, y: 0 };
-
 const convert = (
     direction: string,
     steps: number
@@ -26,6 +22,10 @@ const convert = (
         return { x: 0, y: -steps };
     }
 };
+
+const visitedCoordinates = { "0,0": 1 };
+const h = { x: 0, y: 0 };
+const t = { x: 0, y: 0 };
 
 const recordCoordinate = (x: number, y: number) => {
     if (visitedCoordinates[`${x},${y}`] !== undefined) {
