@@ -12,16 +12,16 @@ interface Coordinate {
 }
 
 const bridge = [
-    { x: 0, y: 0 }, //head
-    { x: 0, y: 0 },
-    { x: 0, y: 0 },
-    { x: 0, y: 0 },
-    { x: 0, y: 0 },
-    { x: 0, y: 0 },
-    { x: 0, y: 0 },
-    { x: 0, y: 0 },
-    { x: 0, y: 0 },
-    { x: 0, y: 0 }, // tail
+    { x: 12, y: 12 }, //head
+    { x: 12, y: 12 },
+    { x: 12, y: 12 },
+    { x: 12, y: 12 },
+    { x: 12, y: 12 },
+    { x: 12, y: 12 },
+    { x: 12, y: 12 },
+    { x: 12, y: 12 },
+    { x: 12, y: 12 },
+    { x: 12, y: 12 }, //tail
 ];
 
 const tailVisited = { "0,0": 1 };
@@ -84,6 +84,27 @@ const moveKnot = (currentKnot: Coordinate, newCoordinate: Coordinate) => {
     }
 };
 
+const createMap = (n) => {
+    const row = new Array(n).fill(".");
+    const map = new Array(n).fill(row);
+    return map;
+};
+
+const printBridge = (bridge: Coordinate[]) => {
+    const map = createMap(40);
+    for (let i = 0; i < bridge.length; i++) {
+        map[bridge[i].y][bridge[i].x] = i === 0 ? "H" : i;
+    }
+    for (const row of map) {
+        let string = "";
+        for (const e of row) {
+            string += e.toString();
+        }
+        console.log(string);
+    }
+    console.log("\n\n");
+};
+
 for (const line of lines) {
     const command = line.split(" ");
     const steps = parseInt(command[1]);
@@ -112,13 +133,12 @@ for (const line of lines) {
             // );
             if (i === bridge.length - 1) {
                 recordVisits(currentKnot);
+                //console.log(tailVisited);
             }
         }
     }
 
-    //console.log(bridge);
+    printBridge(bridge);
 }
 
-console.log(bridge);
-
-console.log(Object.keys(tailVisited).length);
+//console.log(Object.keys(tailVisited).length);
