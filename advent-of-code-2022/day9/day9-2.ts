@@ -1,5 +1,4 @@
 import * as fs from "fs";
-import { BrotliCompress } from "zlib";
 
 const fileReader = () => {
     //returns list of strings separated by \n
@@ -7,58 +6,13 @@ const fileReader = () => {
     return string.split("\n");
 };
 
-const lines = fileReader();
-
-interface Knot {
+interface Coordinate {
     x: number;
     y: number;
 }
 
-const visitedCoordinates = { "0,0": 1 };
-
-const convert = (direction: string): { x: number; y: number } => {
-    if (direction === "R") {
-        return { x: 1, y: 0 };
-    } else if (direction === "L") {
-        return { x: -1, y: 0 };
-    } else if (direction === "U") {
-        return { x: 0, y: 1 };
-    } else {
-        return { x: 0, y: -1 };
-    }
-};
-
-const moveKnot = (currentKnot: Knot, newH: Knot): Knot => {
-    //moves passed knot one step towards a new position and returns change in coordinates for the following knot
-    console.log(
-        `moving ${currentKnot.x},${currentKnot.y} to ${newH.x},${newH.y}`
-    );
-    const dx = Math.abs(newH.x - currentKnot.y);
-    const dy = Math.abs(newH.y - currentKnot.y);
-    const incrementX = newH.x - currentKnot.x > 0 ? 1 : -1;
-    const incrementY = newH.y - currentKnot.y > 0 ? 1 : -1;
-    if (dx <= 1 && dy <= 1) {
-        //do not move
-        console.log(`current knot is close enough`);
-        return currentKnot;
-    } else if ((dx > 1 && dy === 1) || (dx === 1 && dy > 1)) {
-        //move diagonally
-        currentKnot.x += incrementX;
-        currentKnot.y += incrementY;
-        return currentKnot;
-    } else if (dy > dx) {
-        //move vertically
-        currentKnot.y += incrementY;
-        return currentKnot;
-    } else if (dy < dx) {
-        //move horizontally
-        currentKnot.x += incrementX;
-        return currentKnot;
-    }
-    return currentKnot;
-};
-
 const bridge = [
+    { x: 0, y: 0 }, //head
     { x: 0, y: 0 },
     { x: 0, y: 0 },
     { x: 0, y: 0 },
@@ -67,36 +21,104 @@ const bridge = [
     { x: 0, y: 0 },
     { x: 0, y: 0 },
     { x: 0, y: 0 },
-    { x: 0, y: 0 },
-    { x: 0, y: 0 },
+    { x: 0, y: 0 }, // tail
 ];
 
+const tailVisited = { "0,0": 1 };
+
+const recordVisits = (tailCoordinate: Coordinate) => {
+    const key = `${tailCoordinate.x},${tailCoordinate.y}`;
+    if (tailVisited[key] === undefined) {
+        tailVisited[key] = 1;
+    } else {
+        tailVisited[key] += 1;
+    }
+};
+
+const lines = fileReader();
+
+const convertLine = (
+    direction: string,
+    steps: number
+): { x: number; y: number } => {
+    if (direction === "R") {
+        return { x: steps, y: 0 };
+    } else if (direction === "L") {
+        return { x: -steps, y: 0 };
+    } else if (direction === "U") {
+        return { x: 0, y: steps };
+    } else {
+        return { x: 0, y: -steps };
+    }
+};
+
+const getIncrement = (
+    oldCoordinate: Coordinate,
+    newCoordinate: Coordinate
+): Coordinate => {
+    const incrementX = newCoordinate.x - oldCoordinate.x > 0 ? 1 : -1;
+    const incrementY = newCoordinate.y - oldCoordinate.y > 0 ? 1 : -1;
+    return { x: incrementX, y: incrementY };
+};
+
+const getDistance = (
+    oldCoordinate: Coordinate,
+    newCoordinate: Coordinate
+): Coordinate => {
+    const dx = Math.abs(newCoordinate.x - oldCoordinate.x);
+    const dy = Math.abs(newCoordinate.y - oldCoordinate.y);
+    return { x: dx, y: dy };
+};
+
+const moveKnot = (currentKnot: Coordinate, newCoordinate: Coordinate) => {
+    const delta = getDistance(currentKnot, newCoordinate);
+    const increment = getIncrement(currentKnot, newCoordinate);
+
+    if (delta.x >= 1 && delta.y >= 1) {
+        currentKnot.x += increment.x;
+        currentKnot.y += increment.y;
+    } else if (delta.x >= 1) {
+        currentKnot.x += increment.x;
+    } else if (delta.y >= 1) {
+        currentKnot.y += increment.y;
+    }
+};
+
 for (const line of lines) {
-    console.log(`looking at command ${line}`);
     const command = line.split(" ");
     const steps = parseInt(command[1]);
-    const { x, y } = convert(command[0]);
-    let newH = {
-        x: (bridge[0].x += x * steps),
-        y: (bridge[0].y += y * steps),
-    };
-    console.log(`new head position: ${newH.x},${newH.y}`);
-    bridge[0] = newH;
+    const newCoordinate = convertLine(command[0], steps);
+    bridge[0].x += newCoordinate.x;
+    bridge[0].y += newCoordinate.y;
+
     for (let i = 1; i < bridge.length; i++) {
-        console.log(
-            `looking to move knot: ${i} with current coordinates ${bridge[i].x}, ${bridge[i].y}`
-        );
-        for (let j = 0; j < steps - 1; j++) {
-            const newCurrentKnotCoordinate = moveKnot(bridge[i], newH);
-            console.log(
-                `moved knot ${i} to the new coordinate ${newCurrentKnotCoordinate.x},${newCurrentKnotCoordinate.y}`
-            );
+        const newCoordinate = bridge[i - 1];
+        const currentKnot = bridge[i];
+        for (let j = 0; j < steps; j++) {
+            const newDistance = getDistance(currentKnot, newCoordinate);
+            if (newDistance.x <= 1 && newDistance.y <= 1) break;
+            // console.log(
+            //     `bridge knot ${i} with coordinates : ${bridge[i].x}, ${
+            //         bridge[i].y
+            //     } is ${Math.abs(
+            //         bridge[i - 1].x - bridge[i].x
+            //     )} away by X and ${Math.abs(
+            //         bridge[i - 1].y - bridge[i].y
+            //     )} away by Y `
+            // );
+            moveKnot(currentKnot, newCoordinate);
+            // console.log(
+            //     `moved knot ${i} to ${currentKnot.x}, ${currentKnot.y}`
+            // );
+            if (i === bridge.length - 1) {
+                recordVisits(currentKnot);
+            }
         }
-        console.log(
-            `${bridge[i].x},${bridge[i].y} is going to be a target for the next knot`
-        );
-        newH = bridge[i];
     }
+
+    //console.log(bridge);
 }
 
 console.log(bridge);
+
+console.log(Object.keys(tailVisited).length);
