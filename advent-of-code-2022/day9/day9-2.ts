@@ -11,134 +11,95 @@ interface Coordinate {
     y: number;
 }
 
-const bridge = [
-    { x: 12, y: 12 }, //head
-    { x: 12, y: 12 },
-    { x: 12, y: 12 },
-    { x: 12, y: 12 },
-    { x: 12, y: 12 },
-    { x: 12, y: 12 },
-    { x: 12, y: 12 },
-    { x: 12, y: 12 },
-    { x: 12, y: 12 },
-    { x: 12, y: 12 }, //tail
-];
-
-const tailVisited = { "0,0": 1 };
-
-const recordVisits = (tailCoordinate: Coordinate) => {
-    const key = `${tailCoordinate.x},${tailCoordinate.y}`;
-    if (tailVisited[key] === undefined) {
-        tailVisited[key] = 1;
-    } else {
-        tailVisited[key] += 1;
+class Knot {
+    coordinate: Coordinate;
+    static DIRECTIONS = {
+        U: { x: 0, y: 1 },
+        R: { x: 1, y: 0 },
+        D: { x: 0, y: -1 },
+        L: { x: -1, y: 0 },
+    };
+    constructor() {
+        this.coordinate = {
+            x: 0,
+            y: 0,
+        };
     }
-};
+
+    move(direction: string) {
+        const { x, y } = Knot.DIRECTIONS[direction];
+        this.coordinate.x += x;
+        this.coordinate.y += y;
+    }
+
+    getDistance(knot: Knot): Coordinate {
+        return {
+            x: knot.coordinate.x - this.coordinate.x,
+            y: knot.coordinate.y - this.coordinate.y,
+        };
+    }
+
+    shouldFollow(knot: Knot): boolean {
+        const distance = this.getDistance(knot);
+        return Math.abs(distance.x) > 1 || Math.abs(distance.y) > 1;
+    }
+
+    recordVisits(visited: { [key: string]: number }) {
+        const key = `${this.coordinate.x},${this.coordinate.y}`;
+        if (visited[key] === undefined) {
+            visited[key] = 1;
+        } else {
+            visited[key] += 1;
+        }
+    }
+}
 
 const lines = fileReader();
 
-const convertLine = (
-    direction: string,
-    steps: number
-): { x: number; y: number } => {
-    if (direction === "R") {
-        return { x: steps, y: 0 };
-    } else if (direction === "L") {
-        return { x: -steps, y: 0 };
-    } else if (direction === "U") {
-        return { x: 0, y: steps };
-    } else {
-        return { x: 0, y: -steps };
-    }
-};
+const getVisited = (
+    lines: string[],
+    nKnots: number
+): { [key: string]: number } => {
+    const visited = { "0,0": 1 };
+    const bridge = new Array(nKnots).fill("").map(() => new Knot());
+    const head = bridge[0];
+    const tail = bridge.at(-1);
 
-const getIncrement = (
-    oldCoordinate: Coordinate,
-    newCoordinate: Coordinate
-): Coordinate => {
-    const incrementX = newCoordinate.x - oldCoordinate.x > 0 ? 1 : -1;
-    const incrementY = newCoordinate.y - oldCoordinate.y > 0 ? 1 : -1;
-    return { x: incrementX, y: incrementY };
-};
+    for (const line of lines) {
+        const [direction, steps] = line.split(" ");
 
-const getDistance = (
-    oldCoordinate: Coordinate,
-    newCoordinate: Coordinate
-): Coordinate => {
-    const dx = Math.abs(newCoordinate.x - oldCoordinate.x);
-    const dy = Math.abs(newCoordinate.y - oldCoordinate.y);
-    return { x: dx, y: dy };
-};
+        for (let i = 0; i < parseInt(steps); i++) {
+            head.move(direction);
+            console.log(
+                `head coordinates: ${head.coordinate.x}, ${head.coordinate.y}`
+            );
 
-const moveKnot = (currentKnot: Coordinate, newCoordinate: Coordinate) => {
-    const delta = getDistance(currentKnot, newCoordinate);
-    const increment = getIncrement(currentKnot, newCoordinate);
+            for (let j = 1; j < nKnots; j++) {
+                const curr = bridge[j];
+                const prev = bridge[j - 1];
+                const distance = curr.getDistance(prev);
+                console.log(
+                    `knot ${j} distance from head: ${distance.x}, ${distance.y}`
+                );
 
-    if (delta.x >= 1 && delta.y >= 1) {
-        currentKnot.x += increment.x;
-        currentKnot.y += increment.y;
-    } else if (delta.x >= 1) {
-        currentKnot.x += increment.x;
-    } else if (delta.y >= 1) {
-        currentKnot.y += increment.y;
-    }
-};
-
-const createMap = (n) => {
-    const row = new Array(n).fill(".");
-    const map = new Array(n).fill(row);
-    return map;
-};
-
-const printBridge = (bridge: Coordinate[]) => {
-    const map = createMap(40);
-    for (let i = 0; i < bridge.length; i++) {
-        map[bridge[i].y][bridge[i].x] = i === 0 ? "H" : i;
-    }
-    for (const row of map) {
-        let string = "";
-        for (const e of row) {
-            string += e.toString();
-        }
-        console.log(string);
-    }
-    console.log("\n\n");
-};
-
-for (const line of lines) {
-    const command = line.split(" ");
-    const steps = parseInt(command[1]);
-    const newCoordinate = convertLine(command[0], steps);
-    bridge[0].x += newCoordinate.x;
-    bridge[0].y += newCoordinate.y;
-
-    for (let i = 1; i < bridge.length; i++) {
-        const newCoordinate = bridge[i - 1];
-        const currentKnot = bridge[i];
-        for (let j = 0; j < steps; j++) {
-            const newDistance = getDistance(currentKnot, newCoordinate);
-            if (newDistance.x <= 1 && newDistance.y <= 1) break;
-            // console.log(
-            //     `bridge knot ${i} with coordinates : ${bridge[i].x}, ${
-            //         bridge[i].y
-            //     } is ${Math.abs(
-            //         bridge[i - 1].x - bridge[i].x
-            //     )} away by X and ${Math.abs(
-            //         bridge[i - 1].y - bridge[i].y
-            //     )} away by Y `
-            // );
-            moveKnot(currentKnot, newCoordinate);
-            // console.log(
-            //     `moved knot ${i} to ${currentKnot.x}, ${currentKnot.y}`
-            // );
-            if (i === bridge.length - 1) {
-                recordVisits(currentKnot);
-                //console.log(tailVisited);
+                if (curr.shouldFollow(prev)) {
+                    curr.coordinate.x += Math.sign(distance.x);
+                    curr.coordinate.y += Math.sign(distance.y);
+                    console.log(
+                        `new coordinate for knot ${j}: ${curr.coordinate.x}, ${curr.coordinate.y}`
+                    );
+                    if (curr === tail) {
+                        tail.recordVisits(visited);
+                        // console.log(
+                        //     `${tail.coordinate.x},${tail.coordinate.y}`
+                        // );
+                    }
+                }
             }
         }
     }
-
-    printBridge(bridge);
-}
-
-//console.log(Object.keys(tailVisited).length);
+    return visited;
+};
+const res = getVisited(lines, 10);
+//console.log(`day1: ${Object.keys(getVisited(lines, 2)).length}`)
+console.log(`part two: ${Object.keys(res).length}`);
