@@ -34,9 +34,6 @@ class CathodRayTube {
     }
     checkCycle = () => {
         if (this.interestingCycles.some((c) => c === this.currCycle)) {
-            // console.log(
-            //     `During the ${this.currCycle}th cycle, register X has the value ${this.x}`
-            // );
             this.sum += this.currCycle * this.x;
         }
     };
