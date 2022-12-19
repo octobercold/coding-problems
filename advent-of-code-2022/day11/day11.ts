@@ -23,14 +23,25 @@ class Monkey {
         this.timesInspected = 0;
     }
 
-    inspectItem(): number {
+    partOne() {
+        if (this.items[0] === undefined) return;
+        this.items[0] = Math.floor(this.items[0] / 3);
+    }
+
+    partTwo(divisors: number) {
+        if (this.items[0] === undefined) return;
+        this.items[0] = this.items[0] % divisors;
+    }
+
+    inspectItem(part: string, divisors: number): number {
         if (this.items.length === 0) return null;
         if (this.operation === "*") {
             this.items[0] *= this.n === null ? this.items[0] : this.n;
         } else if (this.operation === "+") {
             this.items[0] += this.n === null ? this.items[0] : this.n;
         }
-        this.items[0] = Math.floor(this.items[0] / 3);
+        if (part === "one") this.partOne();
+        if (part === "two") this.partTwo(divisors);
         if (this.items[0] % this.testN === 0) {
             return this.testTrue;
         } else {
@@ -84,10 +95,14 @@ for (const monkey of monkeyStrings) {
     );
 }
 
-const playTurn = (monkey: Monkey) => {
+const divisors = monkeys
+    .map((monkey: Monkey) => monkey.testN)
+    .reduce((a, b) => a * b, 1);
+
+const playTurn = (monkey: Monkey, part: "one" | "two", divisors: number) => {
     monkey.timesInspected += monkey.items.length;
     while (monkey.items.length > 0) {
-        const whereToThrow = monkey.inspectItem();
+        const whereToThrow = monkey.inspectItem(part, divisors);
         if (whereToThrow !== null) {
             const itemToThrow = monkey.throw();
             monkeys[whereToThrow].catch(itemToThrow);
@@ -95,21 +110,27 @@ const playTurn = (monkey: Monkey) => {
     }
 };
 
-const playRound = (monkeys: Monkey[]) => {
+const playRound = (
+    monkeys: Monkey[],
+    part: "one" | "two",
+    divisors: number
+) => {
     for (const monkey of monkeys) {
-        playTurn(monkey);
+        playTurn(monkey, part, divisors);
     }
 };
 
-for (let i = 1; i < 21; i++) {
-    console.log(`ROUND ${i}`);
-    monkeys.forEach((monkey) =>
-        console.log(
-            `after round ${i}, monkey: ${monkey.id} has items: ${monkey.items} and it inspected ${monkey.timesInspected} items overall`
-        )
-    );
-    playRound(monkeys);
-}
+const playRounds = (n: number, part: "one" | "two", divisors: number) => {
+    for (let i = 1; i < n + 1; i++) {
+        // console.log(`ROUND ${i}`);
+        // monkeys.forEach((monkey) =>
+        //     console.log(
+        //         `after round ${i}, monkey: ${monkey.id} has items: ${monkey.items} and it inspected ${monkey.timesInspected} items overall`
+        //     )
+        // );
+        playRound(monkeys, part, divisors);
+    }
+};
 
 const multiplyTopTwo = (arr) => {
     const topTwo = [-Infinity, -Infinity];
@@ -126,5 +147,7 @@ const multiplyTopTwo = (arr) => {
     console.log(topTwo[1] * topTwo[0]);
     return topTwo[1] * topTwo[0];
 };
+
+playRounds(10000, "two", divisors); // part one solution
 
 multiplyTopTwo(monkeys.map((monkey: Monkey) => monkey.timesInspected));
