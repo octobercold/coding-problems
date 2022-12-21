@@ -86,11 +86,15 @@ const from_id_width = (id: number, width: number): [number, number] => {
 const drawTile = (
     graph: Graph,
     id: [number, number],
-    parents: Map<string, [number, number]>
+    parents: Map<string, [number, number]>,
+    start: [number, number],
+    goal: [number, number]
 ) => {
-    let r = " A ";
+    let r = " . ";
     const [x1, y1] = id;
     const parent = parents.get(`${id[0]},${id[1]}`);
+    if (`${id[0]},${id[1]}` === `${start[0]},${start[1]}`) return (r = " A ");
+    if (`${id[0]},${id[1]}` === `${goal[0]},${goal[1]}`) return (r = " Z ");
     if (parent !== undefined && parent !== null) {
         const [x2, y2] = parent;
         if (x2 === x1 + 1) r = " > ";
@@ -102,12 +106,17 @@ const drawTile = (
     return r;
 };
 
-const drawGrid = (graph: Graph, parents: Map<string, [number, number]>) => {
+const drawGrid = (
+    graph: Graph,
+    parents: Map<string, [number, number]>,
+    start: [number, number],
+    goal: [number, number]
+) => {
     console.log("___".repeat(graph.width));
     for (let y = 0; y < graph.height; y++) {
         let row = "";
         for (let x = 0; x < graph.width; x++) {
-            row += drawTile(graph, [x, y], parents);
+            row += drawTile(graph, [x, y], parents, start, goal);
         }
         console.log(row);
         console.log();
@@ -122,7 +131,7 @@ const walls = [
     304, 313, 314, 333, 334, 343, 344, 373, 374, 403, 404, 433, 434,
 ];
 
-const BFS = (graph: Graph, start: [number, number]) => {
+const BFS = (graph: Graph, start: [number, number], goal: [number, number]) => {
     const frontier: [number, number][] = [];
     frontier.push(start);
     const cameFrom: Map<string, [number, number] | null> = new Map();
@@ -130,6 +139,9 @@ const BFS = (graph: Graph, start: [number, number]) => {
 
     while (frontier.length > 0) {
         const current: [number, number] = frontier.shift();
+
+        if (`${current[0]},${current[1]}` === `${goal[0]},${goal[1]}`) break;
+
         for (const next of graph.neighbours(current)) {
             if (!cameFrom.has(`${next[0]},${next[1]}`)) {
                 frontier.push(next);
@@ -147,5 +159,6 @@ const g = new Graph(30, 15);
 diagramWalls.forEach((id) => g.walls.add(`${id[0]},${id[1]}`));
 
 const start: [number, number] = [8, 7];
-const parents = BFS(g, start);
-drawGrid(g, parents);
+const goal: [number, number] = [17, 2];
+const parents = BFS(g, start, goal);
+drawGrid(g, parents, start, goal);
