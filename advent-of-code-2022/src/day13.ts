@@ -1,72 +1,69 @@
-import { countReset } from "console";
 import { fileReader } from "./utils/fileReader";
 const lines = fileReader(13);
 
-interface Pair {
-    left: number[];
-    right: number[];
-}
-
-const pairs: Pair[] = [];
+const pairs = [];
 
 for (let i = 0; i < lines.length; i += 3) {
-    pairs.push({ left: JSON.parse(lines[i]), right: JSON.parse(lines[i + 1]) });
+    pairs.push([JSON.parse(lines[i]), JSON.parse(lines[i + 1])]);
 }
 
-const isRightOrder = (left: number, right: number): boolean | null => {
-    if (left > right) return false;
-    if (right > left) return true;
-    if (left === right) return null;
+const compare = (left, right) => {
+    const length = Math.max(left.length, right.length);
+    for (let i = 0; i < length; i++) {
+        let newLeft = left[i];
+        let newRight = right[i];
+
+        if (newLeft === undefined) {
+            return true;
+        } else if (newRight === undefined) {
+            return false;
+        }
+
+        if (typeof newLeft === "number" && typeof newRight === "number") {
+            if (newLeft < newRight) {
+                return true;
+            } else if (newLeft > newRight) {
+                return false;
+            } else {
+                continue;
+            }
+        }
+
+        newLeft = typeof newLeft === "number" ? [newLeft] : newLeft;
+        newRight = typeof newRight === "number" ? [newRight] : newRight;
+
+        const tempResult = compare(newLeft, newRight);
+        if (tempResult !== null) return tempResult;
+    }
+    return null;
 };
 
 let sumOfIndices = 0;
 
-const deepCompare = (pair: Pair) => {
-    console.log(pair);
-    if (pair.left === undefined || pair.right === undefined) {
-        if (pair.right !== undefined) {
-            return true;
-        }
-        return false;
-    }
-    const length = Math.max(pair.left.length, pair.right.length);
-    console.log(`length: ${length}`);
-    let res;
-    for (let i = 0; i < length; i++) {
-        const left = pair.left[i];
-        const right = pair.right[i];
-
-        if (left === undefined || right === undefined) {
-            if (right !== undefined) {
-                return true;
-            }
-            return false;
-        }
-        if (typeof left === "number" && typeof right === "number") {
-            res = isRightOrder(left, right);
-
-            if (res === null) {
-                continue;
-            } else {
-                return res;
-            }
-        }
-        const newPairLeft = typeof left === "number" ? [left] : left;
-        const newPairRight = typeof right === "number" ? [right] : right;
-        const newPair = { left: newPairLeft, right: newPairRight };
-
-        return deepCompare(newPair as Pair);
-    }
-    return res;
-};
-
 for (let i = 0; i < pairs.length; i++) {
-    if (deepCompare(pairs[i])) {
-        console.log(`correct index: ${i + 1}`);
-        sumOfIndices += i + 1;
-    }
+    const [left, right] = pairs[i];
+    if (compare(left, right) === true) sumOfIndices += i + 1;
 }
 
+const divider2 = [[2]],
+    divider6 = [[6]];
+const pairsWithDividers = [...pairs.flat(), divider2, divider6];
+
+const sortedPairs = pairsWithDividers.sort((a, b) => {
+    const res = compare(a, b);
+    if (res === true) {
+        return -1;
+    } else if (res === false) {
+        return 1;
+    } else {
+        return 0;
+    }
+});
+
+const index2 = sortedPairs.indexOf(divider2) + 1,
+    index6 = sortedPairs.indexOf(divider6) + 1;
+
 export const solution = () => {
-    console.log(`day 1 solution: ${sumOfIndices}`);
+    console.log(`part 1 solution: ${sumOfIndices}`);
+    console.log(`part 2 solution: ${index2 * index6}`);
 };
