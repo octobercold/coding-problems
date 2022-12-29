@@ -1,7 +1,3 @@
-import {
-    sortAndDeduplicateDiagnostics,
-    walkUpBindingElementsAndPatterns,
-} from "typescript";
 import { fileReader } from "./utils/fileReader";
 const lines = fileReader(14);
 
@@ -26,6 +22,12 @@ const stringify = (coordinate: Coordinate) => {
 
 sand.add(stringify(sandSource));
 
+const updateSize = (x: number, y?: number) => {
+    size.xmin = Math.min(size.xmin, x);
+    size.xmax = Math.max(size.xmax, x);
+    size.ymax = Math.max(size.ymax, y);
+};
+
 for (const line of lines) {
     const coordinates = line.split(" -> ");
     for (let i = 1; i < coordinates.length; i++) {
@@ -34,11 +36,10 @@ for (const line of lines) {
         const minx = Math.min(x1, x2);
         const maxx = Math.max(x1, x2);
         const maxy = Math.max(y1, y2);
-        size.xmin = Math.min(size.xmin, minx);
-        size.xmax = Math.max(size.xmax, maxx);
-        size.ymax = Math.max(size.ymax, y1, y2);
-
-        for (let i = Math.min(y1, y2); i <= maxy; i++) {
+        const miny = Math.min(y1, y2);
+        updateSize(x1, y1);
+        updateSize(x2, y2);
+        for (let i = miny; i <= maxy; i++) {
             for (let j = minx; j <= maxx; j++) {
                 const newCoordinate = { x: j, y: i };
                 rocks.add(stringify(newCoordinate));
@@ -77,22 +78,6 @@ const drawScan = (xmin, xmax, ymax) => {
         }
         console.log(row);
     }
-};
-
-const sandCantMove = (): boolean => {
-    const candidates = [
-        { x: sandSource.x, y: sandSource.y + 1 },
-        { x: sandSource.x - 1, y: sandSource.y + 1 },
-        { x: sandSource.x + 1, y: sandSource.y + 1 },
-    ];
-    console.log(
-        `comparison: ${candidates.some((item) => {
-            !rocks.has(stringify(item)) && !sand.has(stringify(item));
-        })}`
-    );
-    return candidates.some((item) => {
-        !rocks.has(stringify(item)) && !sand.has(stringify(item));
-    });
 };
 
 const moveSand = (floor: number): boolean => {
@@ -171,10 +156,12 @@ const moveSandTwo = (floor: number): boolean => {
         ) {
             return false;
         } else {
+            let lastx = coordinate.x;
             sand.add(stringify(coordinate));
             return true;
         }
     }
+
     sand.add(stringify(coordinate));
     return true;
 };
