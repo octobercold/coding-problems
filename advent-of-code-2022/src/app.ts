@@ -6,8 +6,10 @@ class App {
         try {
             const { solution } = await import(`./day${day}`);
             const s = solution();
-            console.log(`day ${day} solution:`);
-            console.log(s);
+            if (s !== undefined) {
+                console.log(`day ${day} solution:`);
+                console.log(s);
+            }
         } catch (err) {
             // throw Error(`module does not exist ./day${day}`);
             throw new Error(err);
