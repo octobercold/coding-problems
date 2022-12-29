@@ -78,7 +78,7 @@ const drawScan = (size) => {
 const sand: Set<string> = new Set();
 sand.add(stringify(sandSource));
 
-const moveSand = () => {
+const moveSand = (floor: number): boolean => {
     /**
      * if next point is empty move sand down (i+1)
      * if it is not empty move sand down and left (i+1, j-1)
@@ -87,7 +87,7 @@ const moveSand = () => {
      * sand starts falling infinitely if y = ymax
      */
     const coordinate: Coordinate = { x: sandSource.x, y: sandSource.y };
-    while (coordinate.y < size.ymax) {
+    while (coordinate.y < floor) {
         if (
             !rocks.has(stringify({ x: coordinate.x, y: coordinate.y + 1 })) &&
             !sand.has(stringify({ x: coordinate.x, y: coordinate.y + 1 }))
@@ -118,16 +118,16 @@ const moveSand = () => {
 };
 
 let isFallingToAbyss = true;
-let counter = 0;
+let partOne = 0;
 
 while (isFallingToAbyss) {
-    const res = moveSand();
+    const res = moveSand(size.ymax);
     if (!res) isFallingToAbyss = false;
-    counter++;
+    partOne++;
 }
 
 export const solution = () => {
     drawScan(size);
-    console.log(`part 1 solution: ${counter - 1}`);
+    console.log(`part 1 solution: ${partOne - 1}`);
     // vectors.forEach((vector) => console.log(vector.start, vector.end));
 };
