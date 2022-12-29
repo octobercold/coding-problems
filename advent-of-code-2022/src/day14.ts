@@ -1,4 +1,7 @@
-import { sortAndDeduplicateDiagnostics } from "typescript";
+import {
+    sortAndDeduplicateDiagnostics,
+    walkUpBindingElementsAndPatterns,
+} from "typescript";
 import { fileReader } from "./utils/fileReader";
 const lines = fileReader(14);
 
@@ -15,10 +18,13 @@ const size = {
 };
 
 const sandSource: Coordinate = { x: 500, y: 0 };
+const sand: Set<string> = new Set();
 
 const stringify = (coordinate: Coordinate) => {
     return `${coordinate.x},${coordinate.y}`;
 };
+
+sand.add(stringify(sandSource));
 
 for (const line of lines) {
     const coordinates = line.split(" -> ");
@@ -61,13 +67,10 @@ const drawPoint = (coordinate: Coordinate): string => {
     }
 };
 
-const drawScan = (size) => {
-    const sizex = size.xmax - size.xmin;
-    const sizey = size.ymax;
-
-    for (let i = 0; i <= sizey; i++) {
+const drawScan = (xmin, xmax, ymax) => {
+    for (let i = 0; i <= ymax; i++) {
         let row = "";
-        for (let j = 0; j <= sizex; j++) {
+        for (let j = 0; j <= xmax - xmin; j++) {
             const coordinate: Coordinate = { x: j, y: i };
             const normalizedCoordinate = normalize(coordinate);
             row += drawPoint(normalizedCoordinate);
@@ -75,8 +78,22 @@ const drawScan = (size) => {
         console.log(row);
     }
 };
-const sand: Set<string> = new Set();
-sand.add(stringify(sandSource));
+
+const sandCantMove = (): boolean => {
+    const candidates = [
+        { x: sandSource.x, y: sandSource.y + 1 },
+        { x: sandSource.x - 1, y: sandSource.y + 1 },
+        { x: sandSource.x + 1, y: sandSource.y + 1 },
+    ];
+    console.log(
+        `comparison: ${candidates.some((item) => {
+            !rocks.has(stringify(item)) && !sand.has(stringify(item));
+        })}`
+    );
+    return candidates.some((item) => {
+        !rocks.has(stringify(item)) && !sand.has(stringify(item));
+    });
+};
 
 const moveSand = (floor: number): boolean => {
     /**
@@ -117,17 +134,80 @@ const moveSand = (floor: number): boolean => {
     return false;
 };
 
-let isFallingToAbyss = true;
-let partOne = 0;
+const moveSandTwo = (floor: number): boolean => {
+    /**
+     * if next point is empty move sand down (i+1)
+     * if it is not empty move sand down and left (i+1, j-1)
+     * if down and left is empty move sand down and right (i+1,j+1)
+     * sand stops when all three are not empty
+     * sand starts falling infinitely if y = ymax
+     */
+    const coordinate: Coordinate = { x: sandSource.x, y: sandSource.y };
+    while (coordinate.y < floor) {
+        if (
+            !rocks.has(stringify({ x: coordinate.x, y: coordinate.y + 1 })) &&
+            !sand.has(stringify({ x: coordinate.x, y: coordinate.y + 1 }))
+        ) {
+            coordinate.y++;
+        } else if (
+            !rocks.has(
+                stringify({ x: coordinate.x - 1, y: coordinate.y + 1 })
+            ) &&
+            !sand.has(stringify({ x: coordinate.x - 1, y: coordinate.y + 1 }))
+        ) {
+            coordinate.x--;
+            coordinate.y++;
+        } else if (
+            !rocks.has(
+                stringify({ x: coordinate.x + 1, y: coordinate.y + 1 })
+            ) &&
+            !sand.has(stringify({ x: coordinate.x + 1, y: coordinate.y + 1 }))
+        ) {
+            coordinate.x++;
+            coordinate.y++;
+        } else if (
+            coordinate.x === sandSource.x &&
+            coordinate.y === sandSource.y
+        ) {
+            return false;
+        } else {
+            sand.add(stringify(coordinate));
+            return true;
+        }
+    }
+    sand.add(stringify(coordinate));
+    return true;
+};
 
-while (isFallingToAbyss) {
-    const res = moveSand(size.ymax);
-    if (!res) isFallingToAbyss = false;
-    partOne++;
-}
+const partOne = () => {
+    let isFallingToAbyss = false;
+    let sandParticles = 0;
+
+    while (!isFallingToAbyss) {
+        const res = moveSand(size.ymax);
+        if (!res) isFallingToAbyss = true;
+        sandParticles++;
+    }
+    return sandParticles - 1;
+};
+
+const partTwo = () => {
+    let sandCanMove = true;
+    let sandParticles = 0;
+
+    while (sandCanMove) {
+        const res = moveSandTwo(size.ymax + 1);
+        if (!res) sandCanMove = false;
+        sandParticles++;
+    }
+    return sandParticles;
+};
 
 export const solution = () => {
-    drawScan(size);
-    console.log(`part 1 solution: ${partOne - 1}`);
-    // vectors.forEach((vector) => console.log(vector.start, vector.end));
+    // const res = partOne();
+    // drawScan(size.xmin, size.xmax, size.ymax);
+    // console.log(`part 1 solution: ${res}`);
+    const res = partTwo();
+    drawScan(size.xmin, size.xmax, size.ymax + 1);
+    console.log(`part 2 solution: ${res}`);
 };
