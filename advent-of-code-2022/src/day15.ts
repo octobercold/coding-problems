@@ -1,46 +1,16 @@
+import { CoreTransformationContext } from "typescript";
 import { fileReader } from "./utils/fileReader";
 const lines = fileReader(15);
 
-// let firstRow = "   "
-// let secondRow="   "
-// const left=size.minx % 5
-// const right=size.maxx % 5
-// secondRow+=left
-// for (let i=size.minx;i<=size.maxx;i+=4) {
-//     firstRow+=`${i % 10}    `
-// }
-// const leftTail = " ".repeat(left)
-// const rightTail = " ".repeat(right)
-// for (let i=size.minx; i<size.maxx;i=+5) {
-
-// }
-
-const INTERESTING_ROW = 11;
+const INTERESTING_ROW = 2000000;
 
 interface Coordinate {
     x: number;
     y: number;
 }
-//beacon is last elem in array
-const network: Map<string, [Set<string>, Coordinate]> = new Map();
-const globalCoverage: Set<string> = new Set();
+
 const rowCoverage: Set<string> = new Set();
-const beacons: Set<string> = new Set();
-const sensors: Set<string> = new Set();
-
-const size = {
-    minx: Number.MAX_SAFE_INTEGER,
-    miny: Number.MAX_SAFE_INTEGER,
-    maxx: Number.MIN_SAFE_INTEGER,
-    maxy: Number.MIN_SAFE_INTEGER,
-};
-
-const updateSize = (x, y) => {
-    size.maxx = Math.max(size.maxx, x);
-    size.maxy = Math.max(size.maxy, y);
-    size.minx = Math.min(size.minx, x);
-    size.miny = Math.min(size.miny, y);
-};
+const counter: Set<string> = new Set();
 
 const getDistance = (c1: Coordinate, c2: Coordinate): number => {
     const d = Math.abs(c1.x - c2.x) + Math.abs(c1.y - c2.y);
@@ -51,36 +21,24 @@ const stringify = (coordinate: Coordinate) => {
     return `${coordinate.x},${coordinate.y}`;
 };
 
-const generateCoverage = (
+const getCoverage = (
     sensor: Coordinate,
-    distance: number,
-    y: number
-): Set<string> => {
-    /**
-     * adds points to global coverage
-     * returns local coverage for sensor
-     */
-    const left = sensor.x - distance - 1;
-    const right = sensor.x + distance + 1;
-    const top = sensor.y - distance - 1;
-    const bottom = sensor.y + distance + 1;
-    const localCoverage: Set<string> = new Set();
+    beacon: Coordinate,
+    row: number
+): number => {
+    const distance = getDistance(sensor, beacon);
+    const costOfGettingToRow = Math.abs(row - sensor.y);
+    const remainingPoints = distance - costOfGettingToRow;
+    rowCoverage.add(stringify({ x: sensor.x, y: row }));
 
-    for (let i = top; i <= bottom; i++) {
-        for (let j = left; j <= right; j++) {
-            const currentCoordinate = { x: j, y: i };
-            const currentDistance = getDistance(sensor, currentCoordinate);
-            if (distance >= currentDistance) {
-                updateSize(currentCoordinate.x, currentCoordinate.y);
-                globalCoverage.add(stringify(currentCoordinate));
-                localCoverage.add(stringify(currentCoordinate));
-                if (currentCoordinate.y === y) {
-                    rowCoverage.add(stringify(currentCoordinate));
-                }
-            }
-        }
+    for (let i = 1; i <= remainingPoints; i++) {
+        const leftCoordinate = { x: sensor.x - i, y: row };
+        const rightCoordinate = { x: sensor.x + i, y: row };
+        rowCoverage.add(stringify(leftCoordinate));
+        rowCoverage.add(stringify(rightCoordinate));
     }
-    return localCoverage;
+
+    return rowCoverage.size;
 };
 
 for (const line of lines) {
@@ -95,71 +53,17 @@ for (const line of lines) {
         y: parseInt(temp[1].at(-1)),
     };
 
-    sensors.add(stringify(sensor));
-    beacons.add(stringify(beacon));
-    updateSize(beacon.x, beacon.y);
+    if (beacon.y === INTERESTING_ROW) counter.add(stringify(beacon));
 
-    const distance = getDistance(sensor, beacon);
-    const localCoverage = generateCoverage(sensor, distance, INTERESTING_ROW);
+    // console.log(`sensor: ${sensor.x}, ${sensor.y}`);
+    // console.log(`beacon: ${beacon.x}, ${beacon.y}`);
 
-    network.set(stringify(sensor), [localCoverage, beacon]);
+    if (getDistance(sensor, beacon) > INTERESTING_ROW - sensor.y) {
+        getCoverage(sensor, beacon, INTERESTING_ROW);
+    }
 }
 
-const drawPoint = (coordinate: Coordinate, sensor?: Coordinate): string => {
-    let c: Set<string>;
-    let b: Set<string>;
-    let s: Set<string>;
-    if (sensor !== undefined) {
-        if (!network.has(stringify(sensor))) {
-            throw new Error("sensor not found");
-        }
-
-        c = network.get(stringify(sensor))[0];
-        b = new Set(stringify(network.get(stringify(sensor))[1]));
-        s = new Set(stringify(sensor));
-    } else {
-        c = globalCoverage;
-        b = beacons;
-        s = sensors;
-    }
-    if (s.has(stringify(coordinate))) {
-        return "S";
-    } else if (b.has(stringify(coordinate))) {
-        return "B";
-    } else if (c.has(stringify(coordinate))) {
-        return "#";
-    } else {
-        return ".";
-    }
-};
-
-const draw = (sensor?: Coordinate) => {
-    if (sensor !== undefined) {
-        console.log(`COVERAGE FOR SENSOR: ${sensor.x},${sensor.y}`);
-    } else {
-        console.log(`ENTIRE NETWORK`);
-    }
-    console.log(
-        "minx: " +
-            size.minx.toString() +
-            " ========================================== maxx: " +
-            size.maxx.toString()
-    );
-    for (let i = size.miny; i < size.maxy; i++) {
-        let row = i.toString().padStart(3, " ") + " ";
-        for (let j = size.minx; j < size.maxx; j++) {
-            const currentCoordinate: Coordinate = { x: j, y: i };
-            const str = drawPoint(currentCoordinate, sensor);
-            row += str;
-        }
-        console.log(row);
-    }
-};
-
-draw();
-
-// console.log(`size: ${JSON.stringify(size)}`);
-// console.log(rowCoverage.size);
+console.log(rowCoverage.size - counter.size);
 
 export const solution = () => {
     //network.forEach((pair) => console.log(pair.sensor, pair.beacon));
