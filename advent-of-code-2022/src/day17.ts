@@ -1,3 +1,4 @@
+import { parseWithNodeMaps } from "@typescript-eslint/typescript-estree";
 import { fileReader } from "./utils/fileReader";
 
 const jetStream = fileReader(17)[0];
@@ -34,33 +35,23 @@ const rocks = [
 function jet(chamber: Set<string>, rock: Coordinate[], s: string): boolean {
     if (s === ">") {
         if (rock.filter(c => c.x === chamberWidth - 1).length > 0) {
-            //console.log("rock moved by jet but nothing happened");
             return false;
         }
-
         rock.forEach(c => c.x++);
-
         if (rock.filter(c => chamber.has(stringify(c))).length > 0) {
             rock.forEach(c => c.x--);
-            //console.log("rock moved by jet but nothing happened");
             return false;
         }
-        //console.log("rock moved right");
         return true;
     } else {
         if (rock.filter(c => c.x === 0).length > 0) {
-            //console.log("rock moved by jet but nothing happened");
             return false;
         }
-
         rock.forEach(c => c.x--);
-
         if (rock.filter(c => chamber.has(stringify(c))).length > 0) {
             rock.forEach(c => c.x++);
-            //console.log("rock moved by jet but nothing happened");
             return false;
         }
-        //console.log("rock moved left");
         return true;
     }
 }
@@ -70,10 +61,8 @@ function drop(chamber: Set<string>, rock: Coordinate[]): boolean {
 
     if (rock.filter(c => chamber.has(stringify(c))).length > 0) {
         rock.forEach(c => c.y++);
-        //console.log("rock can't move down");
         return false;
     }
-    //console.log(`rock moved down`);
     return true;
 }
 
@@ -197,49 +186,67 @@ let rocksFallen = 0;
 let startRocksFallen = 0;
 let startPoint = 0;
 
-while (true) {
-    const rock = fall(rocksCoordinates);
-    rocksFallen++;
-    const pattern = checkClosedPattern(rock);
-    if (pattern) {
-        if (memory.has(pattern.join(" "))) {
-            const {
-                nextBlock,
-                upcomingPattern,
-                chamberTopHistory,
-                placedHistory,
-            } = memory.get(pattern.join(" "));
-            if (
-                rocksFallen % rocksCoordinates.length === nextBlock &&
-                upcomingPattern === jetStream.substring(jetIndex)
-            ) {
-                startPoint = chamberTopHistory;
-                startRocksFallen = placedHistory;
-                break;
+function partOne(n = 2022) {
+    while (rocksFallen < n) {
+        for (const rock of rocksCoordinates) {
+            fall(rocksCoordinates);
+            rocksFallen++;
+            if (rocksFallen === 2022) {
+                console.log("Part one solution: ", chamberTop);
+                chamberTop = 0;
+                jetIndex = 0;
+                rocksFallen = 0;
+                startRocksFallen = 0;
+                startPoint = 0;
+                return;
             }
         }
-        memory.set(pattern.join(" "), {
-            nextBlock: rocksFallen % rocksCoordinates.length,
-            upcomingPattern: jetStream.substring(jetIndex),
-            chamberTopHistory: chamberTop,
-            placedHistory: rocksFallen,
-        });
     }
 }
 
-const remaining = 1000000000000 - rocksFallen;
-const gainedPer = chamberTop - startPoint;
-const reps = Math.floor(remaining / (rocksFallen - startRocksFallen));
-const gained = reps * gainedPer;
-const remainder = remaining % (rocksFallen - startRocksFallen);
+function partTwo(n = 1000000000000) {
+    while (true) {
+        const rock = fall(rocksCoordinates);
+        rocksFallen++;
+        const pattern = checkClosedPattern(rock);
+        if (pattern) {
+            if (memory.has(pattern.join(" "))) {
+                const {
+                    nextBlock,
+                    upcomingPattern,
+                    chamberTopHistory,
+                    placedHistory,
+                } = memory.get(pattern.join(" "));
+                if (
+                    rocksFallen % rocksCoordinates.length === nextBlock &&
+                    upcomingPattern === jetStream.substring(jetIndex)
+                ) {
+                    startPoint = chamberTopHistory;
+                    startRocksFallen = placedHistory;
+                    break;
+                }
+            }
+            memory.set(pattern.join(" "), {
+                nextBlock: rocksFallen % rocksCoordinates.length,
+                upcomingPattern: jetStream.substring(jetIndex),
+                chamberTopHistory: chamberTop,
+                placedHistory: rocksFallen,
+            });
+        }
+    }
+    const remaining = n - rocksFallen;
+    const gainedPer = chamberTop - startPoint;
+    const reps = Math.floor(remaining / (rocksFallen - startRocksFallen));
+    const gained = reps * gainedPer;
+    const remainder = remaining % (rocksFallen - startRocksFallen);
 
-for (let i = 0; i < remainder; i++) {
-    fall(rocksCoordinates);
+    for (let i = 0; i < remainder; i++) {
+        fall(rocksCoordinates);
+    }
+    console.log("Part two solution: ", gained + chamberTop);
 }
-console.log(gained + chamberTop);
-
-console.timeEnd("ExecutionTime");
 
 export function solution() {
-    //console.log()
+    partOne();
+    partTwo();
 }
