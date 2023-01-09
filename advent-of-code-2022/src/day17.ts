@@ -8,10 +8,8 @@ interface Coordinate {
     y: number;
 }
 
-const chamber: Set<string> = new Set();
-
 const stringify = (coordinate: Coordinate) => {
-    return `${coordinate.x},${coordinate.y}`;
+    return coordinate.x.toString() + "," + coordinate.y.toString();
 };
 
 const rocks = [
@@ -33,10 +31,10 @@ const rocks = [
     ],
 ];
 
-function jet(rock: Coordinate[], s: string): boolean {
+function jet(chamber: Set<string>, rock: Coordinate[], s: string): boolean {
     if (s === ">") {
         if (rock.filter(c => c.x === chamberWidth - 1).length > 0) {
-            console.log("rock moved by jet but nothing happened");
+            //console.log("rock moved by jet but nothing happened");
             return false;
         }
 
@@ -44,14 +42,14 @@ function jet(rock: Coordinate[], s: string): boolean {
 
         if (rock.filter(c => chamber.has(stringify(c))).length > 0) {
             rock.forEach(c => c.x--);
-            console.log("rock moved by jet but nothing happened");
+            //console.log("rock moved by jet but nothing happened");
             return false;
         }
-        console.log("rock moved right");
+        //console.log("rock moved right");
         return true;
     } else {
         if (rock.filter(c => c.x === 0).length > 0) {
-            console.log("rock moved by jet but nothing happened");
+            //console.log("rock moved by jet but nothing happened");
             return false;
         }
 
@@ -59,32 +57,24 @@ function jet(rock: Coordinate[], s: string): boolean {
 
         if (rock.filter(c => chamber.has(stringify(c))).length > 0) {
             rock.forEach(c => c.x++);
-            console.log("rock moved by jet but nothing happened");
+            //console.log("rock moved by jet but nothing happened");
             return false;
         }
-        console.log("rock moved left");
+        //console.log("rock moved left");
         return true;
     }
 }
 
-function drop(rock: Coordinate[]): boolean {
+function drop(chamber: Set<string>, rock: Coordinate[]): boolean {
     rock.forEach(c => c.y--);
 
     if (rock.filter(c => chamber.has(stringify(c))).length > 0) {
         rock.forEach(c => c.y++);
-        console.log("rock can't move down");
+        //console.log("rock can't move down");
         return false;
     }
-    console.log(`rock moved down`);
+    //console.log(`rock moved down`);
     return true;
-}
-
-function fall(rock: Coordinate[], chamberTop: number): number {
-    //decrease y why it can fall if can't fall return it's top
-    //rock creates -> jet -> fall -> jet -> fall etc
-    //last jet is at y+1 after this it stops
-
-    return -1;
 }
 
 function convertRocksToCoordinates(rocks: number[][][]): Coordinate[][] {
@@ -122,7 +112,7 @@ function putRockInChamber(
 }
 
 function drawChamber(chamber: Set<string>, chamberTop: number) {
-    for (let y = chamberTop; y >= 0; y--) {
+    for (let y = chamberTop; y >= chamberTop - 20; y--) {
         let chamberRow = `${y} `.padStart(5, " ");
         for (let x = 0; x < chamberWidth; x++) {
             if (chamber.has(stringify({ x: x, y: y }))) chamberRow += `#`;
@@ -132,49 +122,123 @@ function drawChamber(chamber: Set<string>, chamberTop: number) {
     }
 }
 
-for (let i = 0; i < chamberWidth; i++) {
-    chamber.add(stringify({ x: i, y: 0 }));
+function createChamber(chamberTop = 0): Set<string> {
+    const chamber: Set<string> = new Set();
+    for (let i = 0; i < chamberWidth; i++) {
+        chamber.add(stringify({ x: i, y: chamberTop }));
+    }
+    return chamber;
+}
+
+function checkClosedPattern(rock: Coordinate[]) {
+    const pattern = [];
+
+    let minY = Infinity;
+    let maxY = 0;
+
+    for (const c of rock) {
+        minY = Math.min(minY, c.y);
+        maxY = Math.max(maxY, c.y);
+    }
+
+    for (let y = minY; y <= maxY; y++)
+        for (let x = 0; x < chamberWidth; x++)
+            if (chamber.has(`${x},${y}`)) pattern.push(`x:${x}`);
+
+    for (let y = minY; y <= maxY; y++) {
+        let isInRow = true;
+        for (let x = 0; x < chamberWidth; x++) {
+            if (!chamber.has(`${x},${y}`)) {
+                isInRow = false;
+                break;
+            }
+        }
+        if (isInRow) return pattern;
+    }
+    return false;
+}
+
+let i = 0;
+function fall(rocksCoordinates: Coordinate[][]) {
+    const newRock = putRockInChamber(
+        rocksCoordinates[i++ % rocksCoordinates.length],
+        chamberTop
+    );
+
+    let canDrop = true;
+    while (canDrop) {
+        jet(chamber, newRock, jetStream[jetIndex]);
+        jetIndex++;
+        if (jetIndex === jetStream.length) jetIndex = 0;
+        canDrop = drop(chamber, newRock);
+    }
+
+    newRock.forEach(c => (chamberTop = Math.max(chamberTop, c.y)));
+    newRock.forEach(c => chamber.add(stringify(c)));
+
+    return newRock;
 }
 
 const rocksCoordinates = convertRocksToCoordinates(rocks);
+const chamber = createChamber();
+const memory: Map<
+    string,
+    {
+        nextBlock: number;
+        upcomingPattern: string;
+        chamberTopHistory: number;
+        placedHistory: number;
+    }
+> = new Map();
 
 let chamberTop = 0;
 let jetIndex = 0;
 let rocksFallen = 0;
+let startRocksFallen = 0;
+let startPoint = 0;
 
-function start() {
-    while (rocksFallen < 2022) {
-        for (const rock of rocksCoordinates) {
-            const newRock = putRockInChamber(rock, chamberTop);
-            let canDrop = true;
-            console.log("rock begins falling");
-            newRock.forEach(c => console.log(`${c.x},${c.y}`));
-
-            while (canDrop) {
-                jet(newRock, jetStream[jetIndex]);
-                jetIndex++;
-                if (jetIndex === jetStream.length) jetIndex = 0;
-                newRock.forEach(c => console.log(`after jet: ${c.x},${c.y}`));
-                canDrop = drop(newRock);
-                newRock.forEach(c => console.log(`after drop: ${c.x},${c.y}`));
+while (true) {
+    const rock = fall(rocksCoordinates);
+    rocksFallen++;
+    const pattern = checkClosedPattern(rock);
+    if (pattern) {
+        if (memory.has(pattern.join(" "))) {
+            const {
+                nextBlock,
+                upcomingPattern,
+                chamberTopHistory,
+                placedHistory,
+            } = memory.get(pattern.join(" "));
+            if (
+                rocksFallen % rocksCoordinates.length === nextBlock &&
+                upcomingPattern === jetStream.substring(jetIndex)
+            ) {
+                startPoint = chamberTopHistory;
+                startRocksFallen = placedHistory;
+                break;
             }
-
-            console.log("rock can't move, rock coordinates:");
-            newRock.forEach(c => (chamberTop = Math.max(chamberTop, c.y)));
-            newRock.forEach(c => console.log(`${c.x},${c.y}`));
-
-            newRock.forEach(c => chamber.add(stringify(c)));
-            rocksFallen++;
-            if (rocksFallen === 2022) return;
         }
+        memory.set(pattern.join(" "), {
+            nextBlock: rocksFallen % rocksCoordinates.length,
+            upcomingPattern: jetStream.substring(jetIndex),
+            chamberTopHistory: chamberTop,
+            placedHistory: rocksFallen,
+        });
     }
 }
 
-start();
-console.log(rocksFallen);
-console.log(chamberTop);
+const remaining = 1000000000000 - rocksFallen;
+const gainedPer = chamberTop - startPoint;
+const reps = Math.floor(remaining / (rocksFallen - startRocksFallen));
+const gained = reps * gainedPer;
+const remainder = remaining % (rocksFallen - startRocksFallen);
 
-//drawChamber(chamber, chamberTop);
+for (let i = 0; i < remainder; i++) {
+    fall(rocksCoordinates);
+}
+console.log(gained + chamberTop);
+
+console.timeEnd("ExecutionTime");
 
 export function solution() {
     //console.log()
