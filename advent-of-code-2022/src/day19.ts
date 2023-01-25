@@ -1,60 +1,47 @@
 import { fileReader } from "./utils/fileReader";
 
-interface Robot {
-    type: string;
-    oreCost: number;
-    secondaryCost: number;
-    secondaryResource: string;
-}
+// Blueprint = [[ore], [ore], [ore,clay], [ore,obsidian]]
 
-function parse(line: string): Robot {
+function parse(
+    line: string
+): [number, number, [number, number], [number, number]] {
     if (line === "") return null;
     const matched = line
         .trim()
         .match(
-            /^Each ([a-z]+) robot costs ([\d]+) ore\.?(?: and )?([\d]+)? ?([a-z]+)?\.?/
+            /^Blueprint [\d]+: Each ore robot costs ([\d]+) ore. Each clay robot costs ([\d]+) ore. Each obsidian robot costs ([\d]+) ore and ([\d]+) clay. Each geode robot costs ([\d]+) ore and ([\d]+) obsidian./
         );
-    console.log("m: ", matched[1]);
-    return {
-        type: matched[1],
-        oreCost: parseInt(matched[2]),
-        secondaryCost: parseInt(matched[3]),
-        secondaryResource: matched[4],
-    };
+    return [
+        parseInt(matched[1]),
+        parseInt(matched[2]),
+        [parseInt(matched[3]), parseInt(matched[4])],
+        [parseInt(matched[5]), parseInt(matched[6])],
+    ];
 }
-
-const factory: Robot[][] = [];
 
 const lines = fileReader(19);
 
-for (const line of lines) {
-    const [, robots] = line.split(":");
-    const r = robots.split(".", 4).map(robot => parse(robot));
-    factory.push(r);
-}
-const newFactory = [];
-
-for (const blueprint of factory) {
-    const newBlueprint = {};
-    blueprint.forEach(robot => {
-        newBlueprint[robot.type] = { ...robot };
-    });
-    newFactory.push(newBlueprint);
+function dfs(blueprint, maxSpend, cache, time, workingRobots, resources) {
+    if (time === 0) return resources[3];
+    const key = [time, ...workingRobots, ...resources];
+    if (cache.has(key)) return cache.get(key);
+    return 0;
 }
 
-console.log("newFactory: ", newFactory);
+let total = 0;
 
-const resources = { ore: 0, clay: 0, obsidian: 0, geode: 0 };
-const currentBlueprint = newFactory[0];
-const workingRobots = [currentBlueprint.ore];
+for (let i = 0; i < lines.length; i++) {
+    const blueprint = parse(lines[i]);
+    const maxSpend = [
+        Math.max(blueprint[0], blueprint[1], blueprint[2][0], blueprint[3][0]),
+        blueprint[2][1],
+        blueprint[3][1],
+    ];
+    const res = dfs(blueprint, maxSpend, {}, 24, [1, 0, 0, 0], [0, 0, 0, 0]);
+    total += (i + 1) * res;
+}
 
-// let time = 0;
-
-// while (time < 25) {
-//     workingRobots.forEach(r => bank[r.type]++);
-//     if (bank.ore >= )
-//     time++;
-// }
+console.log(total);
 
 export const solution = () => {
     return;
