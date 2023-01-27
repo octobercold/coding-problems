@@ -89,8 +89,6 @@ const dfs = (
         }
 
         if (canBuild) {
-            // ??
-            canBuild = true;
             const remainingTime = time - wait - 1;
             if (remainingTime <= 0) continue;
 
@@ -128,22 +126,32 @@ const dfs = (
     return geodes;
 };
 
-let total = 0;
+let partOne = 0;
+let partTwo = 1;
 
 for (let i = 0; i < lines.length; i++) {
     const blueprint = parse(lines[i]);
-    const res = dfs(
+    if (i < 3) {
+        const res2 = dfs(
+            blueprint,
+            new Map(),
+            32,
+            { ore: 1, clay: 0, obsidian: 0, geode: 0 },
+            { ore: 0, clay: 0, obsidian: 0, geode: 0 }
+        );
+        partTwo *= res2;
+    }
+    const res1 = dfs(
         blueprint,
         new Map(),
         24,
         { ore: 1, clay: 0, obsidian: 0, geode: 0 },
         { ore: 0, clay: 0, obsidian: 0, geode: 0 }
     );
-    total += (i + 1) * res;
+    partOne += (i + 1) * res1;
 }
 
-console.log(total);
-
 export const solution = () => {
-    return;
+    console.log(`Part one solution: ${partOne}`);
+    console.log(`Part two solution: ${partTwo}`);
 };
