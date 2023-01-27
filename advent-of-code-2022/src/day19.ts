@@ -54,40 +54,49 @@ const dfs = (
 
     let geodes = resources.geode + workingRobots.geode * time;
 
+    //iterate through factory blueprint
     for (const [robot, costs] of Object.entries(blueprint)) {
+        // blueprint includes maxSpend optimisation that is skipped
         if (robot === "maxSpend") continue;
 
+        // we always want to build geode robots so skip this
         if (robot != "geode") {
+            // if robots produce more of the resource than it is possible to spend skip
             if (workingRobots[robot] >= blueprint.maxSpend[robot]) continue;
         }
 
+        // time required for resource accummulation for the current robot to be built
         let wait = 0;
+
+        // flag that stays true if all resources have been checked
         let canBuild = true;
 
+        // check all costs
         for (const [resource, cost] of Object.entries(costs)) {
+            // if there are 0 robots of one of the required resource switch flag and exit
             if (workingRobots[resource] === 0) {
                 canBuild = false;
                 break;
             }
 
+            // look for the max time required to build robot, i.e. amount required less amount available divided
             wait = Math.max(
                 wait,
-                Math.ceil(cost - resources[resource] / workingRobots[resource])
+                Math.ceil(
+                    (cost - resources[resource]) / workingRobots[resource]
+                )
             );
         }
 
         if (canBuild) {
+            // ??
+            canBuild = true;
             const remainingTime = time - wait - 1;
             if (remainingTime <= 0) continue;
 
             // make copies of working robots and resources
             const workingRobots_ = { ...workingRobots };
             const resources_ = { ...resources };
-            if (
-                resources_.ore >= blueprint.geode.ore &&
-                resources_.obsidian >= blueprint.geode.obsidian
-            )
-                console.log("I can build GEODE!");
 
             // add resources
             for (const [robot, n] of Object.entries(workingRobots_)) {
@@ -123,7 +132,6 @@ let total = 0;
 
 for (let i = 0; i < lines.length; i++) {
     const blueprint = parse(lines[i]);
-    console.log(blueprint);
     const res = dfs(
         blueprint,
         new Map(),
