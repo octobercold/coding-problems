@@ -1,135 +1,196 @@
+import { cursorTo } from "readline";
+import { NewLineKind } from "typescript";
 import { fileReader } from "./utils/fileReader";
 
 const numbers = fileReader(20).map(n => parseInt(n));
 
 class Node {
-    constructor(public val: number, public left?: Node, public right?: Node) {}
+    val: number;
+    left: Node;
+    right: Node;
+    constructor(val: number) {
+        this.val = val;
+        this.left = null;
+        this.right = null;
+    }
 }
 
-const head = new Node(numbers[0]);
-const tail = new Node(numbers.at(-1));
-let zeroNode: Node;
+class DoublyLinkedList {
+    head: Node;
+    tail: Node;
+    zero: Node;
+    size: number;
+    constructor(val) {
+        this.head = new Node(val);
+        this.tail = this.head;
+        this.zero = null;
+        this.size = 1;
+    }
 
-head.left = tail;
-tail.right = head;
+    prepend(node: Node) {
+        this.head.left = node;
+        node.right = this.head;
+        this.head = node;
 
-let currentNode = head;
+        this.size++;
 
-const q = [head];
-
-for (let i = 1; i < numbers.length - 1; i++) {
-    const newNode = new Node(numbers[i]);
-    if (numbers[i] === 0) zeroNode = newNode;
-    q.push(newNode);
-    newNode.left = currentNode;
-    currentNode.right = newNode;
-    currentNode = currentNode.right;
-}
-
-q.push(tail);
-
-tail.left = currentNode;
-currentNode.right = tail;
-
-function printNode(node: Node) {
-    console.log("   ", node.val, "   ");
-    console.log(node.left.val, "     ", node.right.val);
-}
-
-function removeNode(node: Node) {
-    const nodeLeft = node.left;
-    const nodeRight = node.right;
-    nodeLeft.right = nodeRight;
-    nodeRight.left = nodeLeft;
-    node.left = null;
-    node.right = null;
-    return node;
-}
-
-function insertNode(node: Node, left: Node, right: Node) {
-    node.left = left;
-    node.right = right;
-    left.right = node;
-    right.left = node;
-    return true;
-}
-
-function moveNode(node: Node) {
-    let current = node;
-    let steps = node.val % numbers.length;
-
-    while (steps >= 0) {
-        if (node.val < 0) {
-            current = current.left;
-        } else if (node.val > 0) {
-            current = current.right;
+        if (node.val === 0) {
+            this.zero = node;
         }
-        steps--;
+
+        //this.print();
     }
-    console.log("moving to: ");
-    printNode(current);
 
-    if (current.left === node) {
-        // swapping neighbouts, new place is on the right
-        console.log("old neighbour is on the left");
-        const ol = node.left;
-        const nr = current.right;
+    append(node: Node) {
+        this.tail.right = node;
+        node.left = this.tail;
+        this.tail = node;
 
-        node.left = current;
-        current.right = node;
+        this.size++;
 
-        current.left = ol;
-        ol.right = current;
+        if (node.val === 0) {
+            this.zero = node;
+        }
+        //this.print();
+    }
 
-        node.right = nr;
-        nr.left = node;
-    } else if (current.right === node) {
-        console.log("old neighbour is on the right");
-        //swapping neighbours
-        const or = node.right;
-        const nl = current.left;
+    insertBefore(newNode: Node, oldNode: Node) {
+        if (oldNode === this.head) {
+            this.append(newNode);
+        } else {
+            // oldNode.left - oldNode - oldNode.right
+            // oldNode.left - newNode - oldNode - oldNode.right
+            oldNode.left.right = newNode;
+            newNode.left = oldNode.left;
+            newNode.right = oldNode;
+            oldNode.left = newNode;
+        }
+        this.size++;
+        // console.log(
+        //     "insert node: ",
+        //     newNode.val,
+        //     " before node: ",
+        //     oldNode.val
+        // );
+        // this.print();
+    }
 
-        node.right = current;
-        current.left = node;
+    insertAfter(newNode: Node, oldNode: Node) {
+        if (oldNode === this.tail) {
+            this.prepend(newNode);
+        } else {
+            // oldNode.left - oldNode - oldNode.right
+            // oldNode.left - oldNode - newNode - oldNode.right
+            oldNode.right.left = newNode;
+            newNode.right = oldNode.right;
+            newNode.left = oldNode;
+            oldNode.right = newNode;
+        }
+        this.size++;
 
-        current.right = or;
-        nl.right = node;
-    } else {
-        //swapping two nodes
-        const ol = node.left;
-        console.log("old left: ");
-        printNode(ol);
-        const or = node.right;
-        console.log("old right: ");
-        printNode(or);
-        const nl = current.left;
-        console.log("new left: ");
-        printNode(nl);
-        const nr = current.right;
-        console.log("new right: ");
-        printNode(nr);
+        // console.log("insert node: ", newNode.val, " after node: ", oldNode.val);
+        //this.print();
+    }
 
-        node.left = nl;
-        node.right = nr;
-        nl.right = node;
-        nr.left = node;
+    deleteNode(node: Node) {
+        if (node === this.head) {
+            this.head = node.right;
+            this.head.left = null;
+        } else if (node === this.tail) {
+            this.tail = node.left;
+            this.tail.right = null;
+        } else {
+            node.left.right = node.right;
+            node.right.left = node.left;
+            node.left = null;
+            node.right = null;
+        }
 
-        current.left = ol;
-        current.right = or;
-        ol.right = current;
-        ol.left = current;
+        this.size--;
+
+        //console.log("delete node: ", node.val);
+        return node;
+    }
+
+    print() {
+        let curr = this.head;
+        let str = "";
+        while (curr) {
+            str += `${curr.val} <-> `;
+            curr = curr.right;
+        }
+        console.log(str);
     }
 }
+
+const list = new DoublyLinkedList(numbers[0]);
+const q = [list.head];
+
+for (let i = 1; i < numbers.length; i++) {
+    const newNode = new Node(numbers[i]);
+    q.push(newNode);
+    list.append(newNode);
+}
+//console.log(q);
+
+//console.log("Initial arrangement: ");
+//list.print();
 
 while (q.length > 0) {
-    const node = q.shift();
-    console.log("before move: ");
-    printNode(node);
-    moveNode(node);
-    console.log("after move: ");
-    printNode(node);
-    console.log(" ");
+    list.print();
+    let curr = q.shift();
+    const temp = curr;
+    list.deleteNode(curr);
+    let steps = curr.val % (numbers.length - 1);
+
+    if (steps === 0) {
+        continue;
+    } else if (steps > 0) {
+        if (steps === 1) {
+            list.insertAfter(curr, temp.right);
+        } else {
+            while (steps > 0) {
+                if (curr === list.tail) curr = list.head;
+                else curr = curr.right;
+                steps--;
+            }
+            list.insertAfter(temp, curr);
+        }
+    } else if (steps < 0) {
+        if (steps === -1) {
+            list.insertBefore(curr, curr.left);
+        } else {
+            while (steps < 0) {
+                if (curr === list.head) curr = list.tail;
+                else curr = curr.left;
+                steps++;
+            }
+            list.insertBefore(temp, curr);
+        }
+    }
 }
+
+console.log("Final arrangement: ");
+list.print();
+//console.log(list.zero);
+const n1 = 1000 % numbers.length;
+const n2 = 2000 % numbers.length;
+let n3 = 3000 % numbers.length;
+
+let res = list.zero;
+let sum = 0;
+while (n3 > 0) {
+    //console.log("val: ", res.val);
+    if (n3 === n2 || n3 === n1) {
+        sum += res.val;
+    }
+    if (res === list.tail) res = list.head;
+    else res = res.right;
+    res = res.right;
+    n3--;
+}
+sum += res.val;
+console.log("result: ", sum);
 
 export const solution = () => {
     //console.log(newNumbers);
