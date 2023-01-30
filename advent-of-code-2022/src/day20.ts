@@ -1,5 +1,3 @@
-import { cursorTo } from "readline";
-import { NewLineKind } from "typescript";
 import { fileReader } from "./utils/fileReader";
 
 const numbers = fileReader(20).map(n => parseInt(n));
@@ -30,6 +28,7 @@ class DoublyLinkedList {
     prepend(node: Node) {
         this.head.left = node;
         node.right = this.head;
+        node.left = null;
         this.head = node;
 
         this.size++;
@@ -37,13 +36,12 @@ class DoublyLinkedList {
         if (node.val === 0) {
             this.zero = node;
         }
-
-        //this.print();
     }
 
     append(node: Node) {
         this.tail.right = node;
         node.left = this.tail;
+        node.right = null;
         this.tail = node;
 
         this.size++;
@@ -51,7 +49,6 @@ class DoublyLinkedList {
         if (node.val === 0) {
             this.zero = node;
         }
-        //this.print();
     }
 
     insertBefore(newNode: Node, oldNode: Node) {
@@ -66,13 +63,6 @@ class DoublyLinkedList {
             oldNode.left = newNode;
         }
         this.size++;
-        // console.log(
-        //     "insert node: ",
-        //     newNode.val,
-        //     " before node: ",
-        //     oldNode.val
-        // );
-        // this.print();
     }
 
     insertAfter(newNode: Node, oldNode: Node) {
@@ -87,9 +77,6 @@ class DoublyLinkedList {
             oldNode.right = newNode;
         }
         this.size++;
-
-        // console.log("insert node: ", newNode.val, " after node: ", oldNode.val);
-        //this.print();
     }
 
     deleteNode(node: Node) {
@@ -107,9 +94,17 @@ class DoublyLinkedList {
         }
 
         this.size--;
-
-        //console.log("delete node: ", node.val);
         return node;
+    }
+
+    stepLeft(node: Node) {
+        if (node === this.head) return this.tail;
+        else return node.left;
+    }
+
+    stepRight(node: Node) {
+        if (node === this.tail) return this.head;
+        else return node.right;
     }
 
     print() {
@@ -131,41 +126,47 @@ for (let i = 1; i < numbers.length; i++) {
     q.push(newNode);
     list.append(newNode);
 }
-//console.log(q);
-
-//console.log("Initial arrangement: ");
-//list.print();
 
 while (q.length > 0) {
-    list.print();
-    let curr = q.shift();
-    const temp = curr;
-    list.deleteNode(curr);
-    let steps = curr.val % (numbers.length - 1);
+    const node = q.shift();
 
-    if (steps === 0) {
-        continue;
-    } else if (steps > 0) {
-        if (steps === 1) {
-            list.insertAfter(curr, temp.right);
-        } else {
-            while (steps > 0) {
-                if (curr === list.tail) curr = list.head;
-                else curr = curr.right;
-                steps--;
-            }
-            list.insertAfter(temp, curr);
-        }
-    } else if (steps < 0) {
-        if (steps === -1) {
-            list.insertBefore(curr, curr.left);
+    //console.log(node.val, " will move, current arrangement: ");
+    //list.print();
+
+    if (node.val === 0) continue;
+
+    let curr: Node;
+    let steps = node.val % (numbers.length - 1);
+
+    if (node.val < 0) {
+        curr = list.stepLeft(node);
+        steps++;
+
+        list.deleteNode(node);
+
+        if (node.val === -1) {
+            list.insertBefore(node, curr);
         } else {
             while (steps < 0) {
-                if (curr === list.head) curr = list.tail;
-                else curr = curr.left;
+                curr = list.stepLeft(curr);
                 steps++;
             }
-            list.insertBefore(temp, curr);
+            list.insertBefore(node, curr);
+        }
+    } else {
+        curr = list.stepRight(node);
+        steps--;
+
+        list.deleteNode(node);
+
+        if (node.val === 1) {
+            list.insertAfter(node, curr);
+        } else {
+            while (steps > 0) {
+                curr = list.stepRight(curr);
+                steps--;
+            }
+            list.insertAfter(node, curr);
         }
     }
 }
@@ -175,21 +176,22 @@ list.print();
 //console.log(list.zero);
 const n1 = 1000 % numbers.length;
 const n2 = 2000 % numbers.length;
-let n3 = 3000 % numbers.length;
+const n3 = 3000 % numbers.length;
+let counter = 0;
+//console.log(`n1: ${n1}, n2: ${n2}, n3: ${n3}, counter: ${counter}`);
 
 let res = list.zero;
 let sum = 0;
-while (n3 > 0) {
-    //console.log("val: ", res.val);
-    if (n3 === n2 || n3 === n1) {
+while (counter < Math.max(n1, n2, n3)) {
+    res = list.stepRight(res);
+    counter++;
+    //console.log(`${counter}th number from 0: ${res.val}`);
+    if (counter === n3 || counter === n2 || counter === n1) {
         sum += res.val;
+
+        //console.log("new sum: ", sum);
     }
-    if (res === list.tail) res = list.head;
-    else res = res.right;
-    res = res.right;
-    n3--;
 }
-sum += res.val;
 console.log("result: ", sum);
 
 export const solution = () => {
