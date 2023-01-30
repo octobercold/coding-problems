@@ -2,12 +2,17 @@ import { fileReader } from "./utils/fileReader";
 
 const numbers = fileReader(20).map(n => parseInt(n));
 
+// coef for part two
+const bigPrime = 811589153;
+
 class Node {
     val: number;
+    bigVal: number;
     left: Node;
     right: Node;
     constructor(val: number) {
         this.val = val;
+        this.bigVal = val * bigPrime;
         this.left = null;
         this.right = null;
     }
@@ -67,7 +72,7 @@ class DoublyLinkedList {
 
     insertAfter(newNode: Node, oldNode: Node) {
         if (oldNode === this.tail) {
-            this.prepend(newNode);
+            this.append(newNode);
         } else {
             // oldNode.left - oldNode - oldNode.right
             // oldNode.left - oldNode - newNode - oldNode.right
@@ -89,9 +94,9 @@ class DoublyLinkedList {
         } else {
             node.left.right = node.right;
             node.right.left = node.left;
-            node.left = null;
-            node.right = null;
         }
+        node.left = null;
+        node.right = null;
 
         this.size--;
         return node;
@@ -107,93 +112,133 @@ class DoublyLinkedList {
         else return node.right;
     }
 
-    print() {
+    print(key: "val" | "bigVal") {
         let curr = this.head;
         let str = "";
         while (curr) {
-            str += `${curr.val} <-> `;
+            str += `${curr[key]} <-> `;
             curr = curr.right;
         }
         console.log(str);
     }
 }
 
-const list = new DoublyLinkedList(numbers[0]);
-const q = [list.head];
+function mix(list: DoublyLinkedList, key: "val" | "bigVal", q: Node[]) {
+    for (let i = 0; i < q.length; i++) {
+        const node = q[i];
+        // console.log(`just checking what I am moving actually: ${node.val}`);
+        // console.log(`moving node ${node.val}(${node.bigVal})`);
 
-for (let i = 1; i < numbers.length; i++) {
-    const newNode = new Node(numbers[i]);
-    q.push(newNode);
-    list.append(newNode);
-}
+        if (node[key] === 0) continue;
 
-while (q.length > 0) {
-    const node = q.shift();
+        let curr: Node;
 
-    //console.log(node.val, " will move, current arrangement: ");
-    //list.print();
+        // length - 1 because one node is taken out of the list before moving
+        let steps = node[key] % (numbers.length - 1);
+        // console.log("steps to move: ", steps);
 
-    if (node.val === 0) continue;
+        if (node[key] < 0) {
+            curr = list.stepLeft(node);
+            steps++;
 
-    let curr: Node;
-    let steps = node.val % (numbers.length - 1);
+            list.deleteNode(node);
 
-    if (node.val < 0) {
-        curr = list.stepLeft(node);
-        steps++;
-
-        list.deleteNode(node);
-
-        if (node.val === -1) {
-            list.insertBefore(node, curr);
-        } else {
-            while (steps < 0) {
-                curr = list.stepLeft(curr);
-                steps++;
+            if (steps === 0) {
+                list.insertBefore(node, curr);
+            } else {
+                while (steps < 0) {
+                    curr = list.stepLeft(curr);
+                    steps++;
+                }
+                list.insertBefore(node, curr);
             }
-            list.insertBefore(node, curr);
-        }
-    } else {
-        curr = list.stepRight(node);
-        steps--;
-
-        list.deleteNode(node);
-
-        if (node.val === 1) {
-            list.insertAfter(node, curr);
         } else {
-            while (steps > 0) {
-                curr = list.stepRight(curr);
-                steps--;
+            curr = list.stepRight(node);
+            steps--;
+
+            list.deleteNode(node);
+
+            if (node[key] === 0) {
+                list.insertAfter(node, curr);
+            } else {
+                while (steps > 0) {
+                    curr = list.stepRight(curr);
+                    steps--;
+                }
+                list.insertAfter(node, curr);
             }
-            list.insertAfter(node, curr);
         }
+        // console.log(
+        //     `new position for node ${node.val}(${node.bigVal}) between ${
+        //         node.left != null ? node.left[key] : "node is head"
+        //     } and ${node.right != null ? node.right[key] : "node is tail"}`
+        // );
+        // list.print(key);
     }
 }
 
-console.log("Final arrangement: ");
-list.print();
-//console.log(list.zero);
-const n1 = 1000 % numbers.length;
-const n2 = 2000 % numbers.length;
-const n3 = 3000 % numbers.length;
-let counter = 0;
-//console.log(`n1: ${n1}, n2: ${n2}, n3: ${n3}, counter: ${counter}`);
+function findSum(list: DoublyLinkedList, key: "val" | "bigVal"): number {
+    const n1 = 1000 % numbers.length;
+    const n2 = 2000 % numbers.length;
+    const n3 = 3000 % numbers.length;
+    let counter = 0;
 
-let res = list.zero;
-let sum = 0;
-while (counter < Math.max(n1, n2, n3)) {
-    res = list.stepRight(res);
-    counter++;
-    //console.log(`${counter}th number from 0: ${res.val}`);
-    if (counter === n3 || counter === n2 || counter === n1) {
-        sum += res.val;
+    let res = list.zero;
+    let sum = 0;
 
-        //console.log("new sum: ", sum);
+    while (counter < Math.max(n1, n2, n3)) {
+        res = list.stepRight(res);
+        counter++;
+        if (counter === n3 || counter === n2 || counter === n1) {
+            sum += res[key];
+        }
     }
+    return sum;
 }
-console.log("result: ", sum);
+
+function partOne() {
+    const list = new DoublyLinkedList(numbers[0]);
+    const q = [list.head];
+
+    for (let i = 1; i < numbers.length; i++) {
+        const newNode = new Node(numbers[i]);
+        q.push(newNode);
+        list.append(newNode);
+    }
+
+    mix(list, "val", q);
+    //list.print("val");
+    const res = findSum(list, "val");
+    return res;
+}
+
+function partTwo() {
+    const times = 10;
+    const decKey = 811589153;
+    const nums = numbers.map(v => v * decKey);
+    const list = numbers.map((v, i) => ({ num: v * decKey, id: i }));
+
+    for (let j = 0; j < times; j++) {
+        for (let i = 0; i < nums.length; i++) {
+            const id = list.findIndex(x => x.id === i);
+            list.splice(id, 1);
+            list.splice((nums[i] + id) % list.length, 0, {
+                num: nums[i],
+                id: i,
+            });
+        }
+    }
+
+    const idZero = list.findIndex(x => x.num === 0);
+    const res = [1000, 2000, 3000].reduce(
+        (prev, curr) => prev + list[(curr + idZero) % list.length].num,
+        0
+    );
+    return res;
+}
 
 export const solution = () => {
-    //console.log(newNumbers);
+    console.log(`Part one solution: ${partOne()}`);
+    //console.log(`Part two solution: ${partTwo(10)}`);
+    console.log(`part two copy: ${partTwo()}`);
 };
