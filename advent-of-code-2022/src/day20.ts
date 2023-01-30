@@ -126,8 +126,6 @@ class DoublyLinkedList {
 function mix(list: DoublyLinkedList, key: "val" | "bigVal", q: Node[]) {
     for (let i = 0; i < q.length; i++) {
         const node = q[i];
-        // console.log(`just checking what I am moving actually: ${node.val}`);
-        // console.log(`moving node ${node.val}(${node.bigVal})`);
 
         if (node[key] === 0) continue;
 
@@ -135,7 +133,6 @@ function mix(list: DoublyLinkedList, key: "val" | "bigVal", q: Node[]) {
 
         // length - 1 because one node is taken out of the list before moving
         let steps = node[key] % (numbers.length - 1);
-        // console.log("steps to move: ", steps);
 
         if (node[key] < 0) {
             curr = list.stepLeft(node);
@@ -168,12 +165,6 @@ function mix(list: DoublyLinkedList, key: "val" | "bigVal", q: Node[]) {
                 list.insertAfter(node, curr);
             }
         }
-        // console.log(
-        //     `new position for node ${node.val}(${node.bigVal}) between ${
-        //         node.left != null ? node.left[key] : "node is head"
-        //     } and ${node.right != null ? node.right[key] : "node is tail"}`
-        // );
-        // list.print(key);
     }
 }
 
@@ -207,7 +198,6 @@ function partOne() {
     }
 
     mix(list, "val", q);
-    //list.print("val");
     const res = findSum(list, "val");
     return res;
 }
@@ -239,6 +229,5 @@ function partTwo() {
 
 export const solution = () => {
     console.log(`Part one solution: ${partOne()}`);
-    //console.log(`Part two solution: ${partTwo(10)}`);
     console.log(`part two copy: ${partTwo()}`);
 };
