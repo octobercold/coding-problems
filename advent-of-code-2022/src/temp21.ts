@@ -110,7 +110,11 @@ for (const [, monkey] of monkeyMap.entries()) {
 
 const root = monkeyMap.get("root");
 root.compute();
-console.log(root.n);
+console.log("che za huyan");
+
+for (const [, monkey] of monkeyMap.entries()) {
+    monkey.print();
+}
 
 export function solution() {
     return;
