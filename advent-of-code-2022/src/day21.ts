@@ -1,3 +1,4 @@
+import { Queue } from "js-sdsl";
 import { rootCertificates } from "tls";
 import { fileReader } from "./utils/fileReader";
 
@@ -10,6 +11,8 @@ class Monkey {
     n: number;
     operator: string;
     dependsOn: [Monkey, Monkey];
+    default: number;
+
     constructor(
         name: string,
         n?: number,
@@ -18,26 +21,25 @@ class Monkey {
     ) {
         this.name = name;
         this.n = n;
+        this.default = n;
         this.operator = operator === undefined ? null : operator;
         this.dependsOn = dependsOn === undefined ? [null, null] : dependsOn;
     }
 
     compute() {
-        if (this.n === undefined) {
-            const left = this.dependsOn[0];
-            if (left.n === undefined) {
-                left.compute();
-            }
-            const right = this.dependsOn[1];
-            if (right.n === undefined) {
-                right.compute();
-            }
-
-            if (this.operator === "+") this.n = left.n + right.n;
-            else if (this.operator === "-") this.n = left.n - right.n;
-            else if (this.operator === "/") this.n = left.n / right.n;
-            else if (this.operator === "*") this.n = left.n * right.n;
+        const [left, right] = this.dependsOn;
+        if (left.dependsOn[0] !== null) {
+            left.compute();
         }
+        if (right.dependsOn[0] !== null) {
+            right.compute();
+        }
+
+        if (this.operator === "+") this.n = left.n + right.n;
+        else if (this.operator === "-") this.n = left.n - right.n;
+        else if (this.operator === "/") this.n = left.n / right.n;
+        else if (this.operator === "*") this.n = left.n * right.n;
+
         return;
     }
 
@@ -58,60 +60,103 @@ class Monkey {
 
 const lines = fileReader(21);
 
-const monkeyMap: Map<string, Monkey> = new Map();
+function createMonkeyMap(lines: string[]) {
+    const monkeyMap: Map<string, Monkey> = new Map();
 
-for (const line of lines) {
-    let leftMonkey: Monkey, rightMonkey: Monkey, mainMonkey: Monkey;
-    const [name, val] = line.split(":");
-    if (val.length > 8) {
-        const [, left, operator, right] = val
-            .trim()
-            .match(/^([a-z]+) ([-+*/]) ([a-z]+)/);
+    for (const line of lines) {
+        let leftMonkey: Monkey, rightMonkey: Monkey, mainMonkey: Monkey;
+        const [name, val] = line.split(":");
+        if (val.length > 8) {
+            const [, left, operator, right] = val
+                .trim()
+                .match(/^([a-z]+) ([-+*/]) ([a-z]+)/);
 
-        if (monkeyMap.has(left)) {
-            leftMonkey = monkeyMap.get(left);
-        } else {
-            leftMonkey = new Monkey(left);
-            monkeyMap.set(left, leftMonkey);
-        }
+            if (monkeyMap.has(left)) {
+                leftMonkey = monkeyMap.get(left);
+            } else {
+                leftMonkey = new Monkey(left);
+                monkeyMap.set(left, leftMonkey);
+            }
 
-        if (monkeyMap.has(right)) {
-            rightMonkey = monkeyMap.get(right);
-        } else {
-            rightMonkey = new Monkey(right);
-            monkeyMap.set(right, rightMonkey);
-        }
+            if (monkeyMap.has(right)) {
+                rightMonkey = monkeyMap.get(right);
+            } else {
+                rightMonkey = new Monkey(right);
+                monkeyMap.set(right, rightMonkey);
+            }
 
-        if (monkeyMap.has(name)) {
-            mainMonkey = monkeyMap.get(name);
-            mainMonkey.dependsOn = [leftMonkey, rightMonkey];
-            mainMonkey.operator = operator;
+            if (monkeyMap.has(name)) {
+                mainMonkey = monkeyMap.get(name);
+                mainMonkey.dependsOn = [leftMonkey, rightMonkey];
+                mainMonkey.operator = operator;
+            } else {
+                mainMonkey = new Monkey(name, undefined, operator, [
+                    leftMonkey,
+                    rightMonkey,
+                ]);
+                monkeyMap.set(name, mainMonkey);
+            }
         } else {
-            mainMonkey = new Monkey(name, undefined, operator, [
-                leftMonkey,
-                rightMonkey,
-            ]);
-            monkeyMap.set(name, mainMonkey);
-        }
-    } else {
-        const n = parseInt(val.trim());
-        if (monkeyMap.has(name)) {
-            mainMonkey = monkeyMap.get(name);
-            mainMonkey.n = n;
-        } else {
-            monkeyMap.set(name, new Monkey(name, n));
+            const n = parseInt(val.trim());
+            if (monkeyMap.has(name)) {
+                mainMonkey = monkeyMap.get(name);
+                mainMonkey.n = n;
+            } else {
+                monkeyMap.set(name, new Monkey(name, n));
+            }
         }
     }
+    return monkeyMap;
 }
 
-for (const [, monkey] of monkeyMap.entries()) {
-    monkey.print();
+function partOne() {
+    const monkeyMap = createMonkeyMap(lines);
+    const root = monkeyMap.get("root");
+
+    root.compute();
+    return root.n;
 }
 
-const root = monkeyMap.get("root");
-root.compute();
-console.log(root.n);
+function partTwo() {
+    //initial state root: mcnw + wqdw
+
+    const monkeyMap = new Map();
+    const numbersMap = new Map();
+    for (const line of lines) {
+        const [l, r] = line.split(":");
+        if (r.length > 8) {
+            const [, left, operator, right] = r
+                .trim()
+                .match(/^([a-z]+) ([-+*/]) ([a-z]+)/);
+            if (operator === "+") {
+                monkeyMap.set(right, [l, "-", left]);
+                monkeyMap.set(left, [l, "-", right]);
+            } else if (operator === "-") {
+                monkeyMap.set(right, [left, "-", l]);
+                monkeyMap.set(left, [l, "+", right]);
+            } else if (operator === "*") {
+                monkeyMap.set(right, [l, "/", left]);
+                monkeyMap.set(left, [l, "/", right]);
+            } else {
+                monkeyMap.set(right, [left, "/", l]);
+                monkeyMap.set(left, [l, "*", right]);
+            }
+        } else {
+            numbersMap.set(l, parseInt(r));
+        }
+    }
+
+    for (const [name, fx] of monkeyMap.entries()) {
+        const [left, operation, right] = fx;
+        if (numbersMap.has(left)) fx[0] = numbersMap.get(left);
+        if (numbersMap.has(right)) fx[2] = numbersMap.get(right);
+        console.log(`${name}: ${fx}`);
+    }
+
+    //console.log(numbersMap);
+}
 
 export function solution() {
-    return;
+    // console.log(`Part one solution: ${partOne()}`);
+    console.log(`part two solution: ${partTwo()}`);
 }

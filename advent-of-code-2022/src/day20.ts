@@ -229,5 +229,5 @@ function partTwo() {
 
 export const solution = () => {
     console.log(`Part one solution: ${partOne()}`);
-    console.log(`part two copy: ${partTwo()}`);
+    console.log(`part two solution: ${partTwo()}`);
 };
