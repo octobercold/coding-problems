@@ -1,11 +1,4 @@
-import { Queue } from "js-sdsl";
-import { rootCertificates } from "tls";
-import { flattenDiagnosticMessageText } from "typescript";
 import { fileReader } from "./utils/fileReader";
-
-// Blueprint = [[ore], [ore], [ore,clay], [ore,obsidian]]
-// robot indeces in blueprint: 0 = ore, 1 = clay, 2 = obsidian, 3 = geode
-// full credit to hyper-neutrino ref: https://www.youtube.com/watch?v=H3PSODv4nf0&ab_channel=hyper-neutrino
 
 class Monkey {
     name: string;
