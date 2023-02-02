@@ -1,5 +1,6 @@
 import { Queue } from "js-sdsl";
 import { rootCertificates } from "tls";
+import { flattenDiagnosticMessageText } from "typescript";
 import { fileReader } from "./utils/fileReader";
 
 // Blueprint = [[ore], [ore], [ore,clay], [ore,obsidian]]
@@ -11,8 +12,6 @@ class Monkey {
     n: number;
     operator: string;
     dependsOn: [Monkey, Monkey];
-    default: number;
-
     constructor(
         name: string,
         n?: number,
@@ -21,7 +20,6 @@ class Monkey {
     ) {
         this.name = name;
         this.n = n;
-        this.default = n;
         this.operator = operator === undefined ? null : operator;
         this.dependsOn = dependsOn === undefined ? [null, null] : dependsOn;
     }
@@ -118,45 +116,66 @@ function partOne() {
 }
 
 function partTwo() {
-    //initial state root: mcnw + wqdw
+    const monkeyMap = createMonkeyMap(lines);
 
-    const monkeyMap = new Map();
-    const numbersMap = new Map();
-    for (const line of lines) {
-        const [l, r] = line.split(":");
-        if (r.length > 8) {
-            const [, left, operator, right] = r
-                .trim()
-                .match(/^([a-z]+) ([-+*/]) ([a-z]+)/);
-            if (operator === "+") {
-                monkeyMap.set(right, [l, "-", left]);
-                monkeyMap.set(left, [l, "-", right]);
-            } else if (operator === "-") {
-                monkeyMap.set(right, [left, "-", l]);
-                monkeyMap.set(left, [l, "+", right]);
-            } else if (operator === "*") {
-                monkeyMap.set(right, [l, "/", left]);
-                monkeyMap.set(left, [l, "/", right]);
-            } else {
-                monkeyMap.set(right, [left, "/", l]);
-                monkeyMap.set(left, [l, "*", right]);
-            }
-        } else {
-            numbersMap.set(l, parseInt(r));
+    const findFirstBeforeHumn = (monkey: Monkey) => {
+        if (monkey.dependsOn[0] === null && monkey.dependsOn[1] === null)
+            return false;
+        const [left, right] = monkey.dependsOn;
+        if (left.name === "humn") return true;
+        if (right.name === "humn") return true;
+
+        return findFirstBeforeHumn(left) || findFirstBeforeHumn(right);
+    };
+
+    const root = monkeyMap.get("root");
+    const [left, right] = root.dependsOn;
+    let target: number, humanAffectedOperand: Monkey;
+
+    if (!findFirstBeforeHumn(left)) {
+        left.compute();
+        target = left.n;
+        humanAffectedOperand = right;
+    } else {
+        right.compute();
+        target = right.n;
+        humanAffectedOperand = left;
+    }
+
+    const humn = monkeyMap.get("humn");
+    humn.n = 0;
+    humanAffectedOperand.compute();
+    let y1 = humanAffectedOperand.n;
+
+    humn.n = 1;
+    humanAffectedOperand.compute();
+    const y2 = humanAffectedOperand.n;
+
+    const coef = y1 < y2 ? 1 : -1;
+    let increment = 100000000000000;
+    let currNum = 0;
+    let wasUnderTarget = true;
+
+    while (y1 !== target) {
+        if (y1 > target) {
+            if (wasUnderTarget) increment /= 10;
+            wasUnderTarget = false;
+            currNum -= increment * coef;
         }
-    }
+        if (y1 < target) {
+            if (!wasUnderTarget) increment /= 10;
+            wasUnderTarget = true;
+            currNum += increment * coef;
+        }
 
-    for (const [name, fx] of monkeyMap.entries()) {
-        const [left, operation, right] = fx;
-        if (numbersMap.has(left)) fx[0] = numbersMap.get(left);
-        if (numbersMap.has(right)) fx[2] = numbersMap.get(right);
-        console.log(`${name}: ${fx}`);
+        humn.n = currNum;
+        humanAffectedOperand.compute();
+        y1 = humanAffectedOperand.n;
     }
-
-    //console.log(numbersMap);
+    return humn.n;
 }
 
 export function solution() {
-    // console.log(`Part one solution: ${partOne()}`);
+    console.log(`Part one solution: ${partOne()}`);
     console.log(`part two solution: ${partTwo()}`);
 }
