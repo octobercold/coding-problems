@@ -125,8 +125,9 @@ console.log(`start position: `, position);
 
 for (const d of directions) {
     console.log("command: ", d);
-    if (d === "R") facing = (facing % 4) + 1;
-    else if (d === "L") facing = (facing % 4) - 1;
+    facing = Math.abs(facing % 4);
+    if (d === "R") facing++;
+    else if (d === "L") facing--;
     else {
         let steps = parseInt(d);
         while (steps) {
@@ -157,6 +158,13 @@ for (const d of directions) {
         }
     }
 }
+const [, column, row] = position
+    .match(/^(-?\d+),(-?\d+)/)
+    .map(n => parseInt(n));
+
+console.log(column, row, facing);
+
+console.log(1000 * row + 4 * column + facing);
 
 export function solution() {
     return;
