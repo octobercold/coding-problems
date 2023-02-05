@@ -44,35 +44,48 @@ function getNeighbours(x: number, y: number): number[][] {
 //     return neighbours;
 // }
 
-// {faceId: {leaving direction: [faceId, arriving direction]}
-const wrap = {
-    1: { 3: [6, 3], 2: [5, 3] },
-    2: { 3: [6, 2], 0: [4, 2], 1: [3, 2] },
-    3: { 0: [2, 3], 2: [5, 2] },
-    4: { 0: [2, 2], 2: [5, 1] },
-    5: { 2: [3, 0], 1: [1, 2], 3: [4, 0] }, //
-    6: { 1: [1, 1], 0: [2, 1] },
-};
+// [face0, face1, face2... etc] arrays inside correspond to di1990ection of leaving. If number maintain direction if array change direction
+const wrap = [
+    [[2], [3], [5, 3], [6, 3]],
+    [[4, 2], [3, 2], [1], [6, 2]],
+    [[2, 3], [4], [5, 2], [1]],
+    [[2, 2], [6], [5, 1], [3]],
+    [[6], [1, 2], [3, 0], [4, 0]],
+    [[2, 1], [1, 1], [5], [4]],
+];
 
 function scanFace(start) {
+    const border = {
+        x: { min: +Infinity, max: -Infinity },
+        y: { min: +Infinity, max: -Infinity },
+    };
     const face = new Map();
     const [startX, startY] = start;
-    for (let y = startY; y < startY + FACE_SIZE; y++) {
-        for (let x = startX; x < startX + FACE_SIZE; x++) {
-            face.set(`${x + 1},${y + 1}`, cube[y][x]);
+    console.log(`${startX},${startY}`);
+    for (let y = startY - 1; y < startY - 1 + FACE_SIZE; y++) {
+        const row = cube[y].split("");
+        for (let x = startX - 1; x < startX - 1 + FACE_SIZE; x++) {
+            face.set(`${x + 1},${y + 1}`, row[x]);
+            border.x.min = Math.min(border.x.min, x);
+            border.y.min = Math.min(border.y.min, y);
+            border.x.max = Math.min(border.x.min, x);
+            border.y.max = Math.min(border.y.min, y);
         }
     }
-    return;
+    return { border, face };
 }
 
-const start = [50 * 1, 50 * 0];
+const start = [50 * 1, 1];
+
+console.log("start: ", start);
+
 const cubeFaces = [
-    scanFace([50 * 1, 50 * 0]), // face 1
-    scanFace([50 * 2, 50 * 0]), // face 2
-    scanFace([50 * 1, 50 * 1]), // face 3
-    scanFace([50 * 0, 50 * 2]), // face 4
-    scanFace([50 * 1, 50 * 2]), // face 5
-    scanFace([50 * 0, 50 * 3]), // face 6
+    { ...scanFace([50 * 1, 1]) }, // face 1
+    { ...scanFace([50 * 2, 1]) }, // face 2
+    { ...scanFace([50 * 1, 50 * 1]) }, // face 3
+    { ...scanFace([1, 50 * 2]) }, // face 4
+    { ...scanFace([50 * 1, 50 * 2]) }, // face 5
+    { ...scanFace([1, 50 * 3]) }, // face 6
 ];
 
 const wall = new Set();
@@ -82,14 +95,13 @@ const directions = lines
     .trim()
     .match(/([\d]+)|([RL])/g);
 
-console.log(cubeFaces[0]);
 // The final password is the sum of 1000 times the row, 4 times the column, and the facing.
 // Facing is 0 for right (>), 1 for down (v), 2 for left (<), and 3 for up (^)
-// let facing = 0;
-// const result = new Map();
-// let position = start;
-// result.set(position, facing);
-// console.log(`start position: `, position);
+const result = new Map();
+let facing = 0;
+let position = start;
+let currentFace = 0;
+result.set(`${start[0]},${start[1]}`, facing);
 
 // function draw(position: string, d, facing) {
 //     const convert = [">", "v", "<", "^"];
@@ -125,49 +137,55 @@ console.log(cubeFaces[0]);
 //     console.log("\n");
 // }
 
-// for (const d of directions) {
-//     if (d === "R") {
-//         console.log("Change of direction R");
-//         facing++;
-//     } else if (d === "L") {
-//         if (facing === 0) {
-//             facing = 3;
-//         } else {
-//             facing--;
-//         }
-//         console.log("Change of direction L");
-//     } else {
-//         facing = Math.abs(facing % 4);
-//         let steps = parseInt(d);
-//         while (steps) {
-//             const next = map.get(position);
+for (const d of directions) {
+    if (d === "R") {
+        if (facing === 3) facing = 0;
+        else facing++;
+    } else if (d === "L") {
+        if (facing === 0) facing = 3;
+        else facing--;
+    } else {
+        let steps = parseInt(d);
+        console.log("face: ", cubeFaces[currentFace].face);
+        while (steps) {
+            const [x, y] = start;
+            const face = cubeFaces[currentFace].face;
+            const borderX = cubeFaces[currentFace].border.x;
+            const borderY = cubeFaces[currentFace].border.y;
 
-//             if (!next[facing]) break;
-//             const [, x, y] = next[facing]
-//                 .match(/^(-?\d+),(-?\d+)/)
-//                 .map(n => parseInt(n));
-//             if (x < 0 || y < 0) {
-//                 const nextTrue = map.get(next[facing])[facing];
-//                 if (wall.has(nextTrue) || !nextTrue) break;
-//                 position = nextTrue;
-//                 result.set(position, facing);
-//                 draw(position, d, facing);
-//             } else {
-//                 position = next[facing];
-//                 result.set(position, facing);
-//                 draw(position, d, facing);
-//             }
-//             steps--;
-//         }
-//     }
-// }
-// const [, column, row] = position
-//     .match(/^(-?\d+),(-?\d+)/)
-//     .map(n => parseInt(n));
+            const next = getNeighbours(x, y)[facing];
+            const symbol = face.get(`${next[0]},${next[1]}`);
+            console.log("next: ", next);
+            console.log("next symbol: ", face.get(next));
 
-// console.log(column, row, facing);
+            if (symbol === "#") break;
+            else if (symbol === ".") position = next;
+            else {
+                if (
+                    [...Object.values(borderX)].some(v => v === next[0]) ||
+                    [...Object.values(borderY)].some(v => v === next[1])
+                ) {
+                    const [newFace, newFacing] = wrap[currentFace][facing];
+                    if (
+                        cubeFaces[newFace].face.get(`${next[0]},${next[1]}`) ===
+                        "#"
+                    )
+                        break;
+                    facing = newFacing ? newFacing : facing;
+                    currentFace = newFace;
+                    position = next;
+                }
+            }
+            result.set(`${position[0]},${position[1]}`, facing);
+            steps--;
+        }
+    }
+}
+const [column, row] = position;
 
-// console.log(1000 * row + 4 * column + facing);
+console.log(column, row, facing);
+
+console.log(1000 * row + 4 * column + facing);
 
 export function solution() {
     return;
