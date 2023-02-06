@@ -44,14 +44,14 @@ function getNeighbours(x: number, y: number): number[][] {
 //     return neighbours;
 // }
 
-// [face0, face1, face2... etc] arrays inside correspond to di1990ection of leaving. If number maintain direction if array change direction
+// [face0, face1, face2... etc] arrays inside correspond to d of leaving. If number maintain direction if array change direction
 const wrap = [
-    [[2], [3], [5, 3], [6, 3]],
-    [[4, 2], [3, 2], [1], [6, 2]],
-    [[2, 3], [4], [5, 2], [1]],
-    [[2, 2], [6], [5, 1], [3]],
-    [[6], [1, 2], [3, 0], [4, 0]],
-    [[2, 1], [1, 1], [5], [4]],
+    [[1], [2], [4, 3], [5, 3]],
+    [[3, 2], [2, 2], [0], [5, 2]],
+    [[1, 3], [3], [4, 2], [0]],
+    [[1, 2], [5], [4, 1], [2]],
+    [[5], [0, 2], [2, 0], [3, 0]],
+    [[1, 1], [0, 1], [4], [3]],
 ];
 
 function scanFace(start) {
@@ -60,16 +60,19 @@ function scanFace(start) {
         y: { min: +Infinity, max: -Infinity },
     };
     const face = new Map();
+
     const [startX, startY] = start;
-    console.log(`${startX},${startY}`);
+
     for (let y = startY - 1; y < startY - 1 + FACE_SIZE; y++) {
         const row = cube[y].split("");
         for (let x = startX - 1; x < startX - 1 + FACE_SIZE; x++) {
             face.set(`${x + 1},${y + 1}`, row[x]);
+
             border.x.min = Math.min(border.x.min, x);
             border.y.min = Math.min(border.y.min, y);
-            border.x.max = Math.min(border.x.min, x);
-            border.y.max = Math.min(border.y.min, y);
+
+            border.x.max = Math.max(border.x.max, x);
+            border.y.max = Math.max(border.y.max, y);
         }
     }
     return { border, face };
@@ -87,8 +90,6 @@ const cubeFaces = [
     { ...scanFace([50 * 1, 50 * 2]) }, // face 5
     { ...scanFace([1, 50 * 3]) }, // face 6
 ];
-
-const wall = new Set();
 
 const directions = lines
     .at(-1)
@@ -146,9 +147,8 @@ for (const d of directions) {
         else facing--;
     } else {
         let steps = parseInt(d);
-        console.log("face: ", cubeFaces[currentFace].face);
         while (steps) {
-            const [x, y] = start;
+            const [x, y] = position;
             const face = cubeFaces[currentFace].face;
             const borderX = cubeFaces[currentFace].border.x;
             const borderY = cubeFaces[currentFace].border.y;
@@ -156,14 +156,17 @@ for (const d of directions) {
             const next = getNeighbours(x, y)[facing];
             const symbol = face.get(`${next[0]},${next[1]}`);
             console.log("next: ", next);
-            console.log("next symbol: ", face.get(next));
+            console.log("next symbol: ", face.get(`${next[0]},${next[1]}`));
 
             if (symbol === "#") break;
             else if (symbol === ".") position = next;
             else {
+                console.log("yoyoy");
                 if (
-                    [...Object.values(borderX)].some(v => v === next[0]) ||
-                    [...Object.values(borderY)].some(v => v === next[1])
+                    next[0] > borderX.max ||
+                    next[0] < borderX.min ||
+                    next[1] > borderY.max ||
+                    next[1] < borderY.min
                 ) {
                     const [newFace, newFacing] = wrap[currentFace][facing];
                     if (
