@@ -2,193 +2,91 @@ import { fileReader } from "./utils/fileReader";
 const lines = fileReader(22);
 const cube = lines.slice(0, -2);
 
-const FACE_SIZE = 50;
-
-function getNeighbours(x: number, y: number): number[][] {
-    return [
-        [x + 1, y],
-        [x, y + 1],
-        [x - 1, y],
-        [x, y - 1],
-    ];
+interface Point {
+    x: number;
+    y: number;
 }
 
-// function wrapping(
-//     facing: number,
-//     nx: number,
-//     ny: number,
-//     key: string,
-//     neighbours: number[][]
-// ) {
-//     let wrappingKey: string;
-//     if (facing === 0 || facing === 2) {
-//         neighbours[facing] = [-1, ny];
-//         wrappingKey = `-1,${ny}`;
-//     } else {
-//         neighbours[facing] = [nx, -1];
-//         wrappingKey = `${nx},-1`;
-//     }
+interface Vector {
+    x: number;
+    y: number;
+    z: number;
+}
 
-//     const swap = { 0: 2, 1: 3, 2: 0, 3: 1 };
+interface Info {
+    point: Point;
+    i: Vector;
+    j: Vector;
+    k: Vector;
+}
 
-//     if (map.has(wrappingKey)) {
-//         const arr = map.get(wrappingKey);
-//         arr[swap[facing]] = key;
-//         map.set(wrappingKey, arr);
-//     } else {
-//         const arr = [null, null, null, null];
-//         arr[swap[facing]] = key;
-//         map.set(wrappingKey, arr);
-//     }
+function pointsSum(point1: Point, point2: Point): Point {
+    return { x: point1.x + point2.x, y: point1.y + point2.y };
+}
+function clockwise(point: Point): Point {
+    return { x: -point.y, y: point.x };
+}
+function counterClockwise(point: Point): Point {
+    return { x: point.y, y: -point.x };
+}
+function score(point: Point): number {
+    return 1000 * (point.y + 1) + 4 * (point.x + 1);
+}
 
-//     return neighbours;
-// }
-
-// [face0, face1, face2... etc] arrays inside correspond to d of leaving. If number maintain direction if array change direction
-const wrap = [
-    [[1], [2], [4, 3], [5, 3]],
-    [[3, 2], [2, 2], [0], [5, 2]],
-    [[1, 3], [3], [4, 2], [0]],
-    [[1, 2], [5], [4, 1], [2]],
-    [[5], [0, 2], [2, 0], [3, 0]],
-    [[1, 1], [0, 1], [4], [3]],
-];
-
-function scanFace(start) {
-    const border = {
-        x: { min: +Infinity, max: -Infinity },
-        y: { min: +Infinity, max: -Infinity },
+function multiply(v: Vector, k: number): Vector {
+    return { x: v.x * k, y: v.y * k, z: v.z * k };
+}
+function vectorsSum(a: Vector, b: Vector): Vector {
+    return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+}
+function vectorsCross(a: Vector, b: Vector): Vector {
+    return {
+        x: a.y * b.z - a.z * b.y,
+        y: a.z * b.x - a.x * b.z,
+        z: a.x * b.y - a.y * b.x,
     };
-    const face = new Map();
-
-    const [startX, startY] = start;
-
-    for (let y = startY - 1; y < startY - 1 + FACE_SIZE; y++) {
-        const row = cube[y].split("");
-        for (let x = startX - 1; x < startX - 1 + FACE_SIZE; x++) {
-            face.set(`${x + 1},${y + 1}`, row[x]);
-
-            border.x.min = Math.min(border.x.min, x);
-            border.y.min = Math.min(border.y.min, y);
-
-            border.x.max = Math.max(border.x.max, x);
-            border.y.max = Math.max(border.y.max, y);
-        }
-    }
-    return { border, face };
 }
 
-const start = [50 * 1, 1];
+let topLeft: Point;
 
-console.log("start: ", start);
-
-const cubeFaces = [
-    { ...scanFace([50 * 1, 1]) }, // face 1
-    { ...scanFace([50 * 2, 1]) }, // face 2
-    { ...scanFace([50 * 1, 50 * 1]) }, // face 3
-    { ...scanFace([1, 50 * 2]) }, // face 4
-    { ...scanFace([50 * 1, 50 * 2]) }, // face 5
-    { ...scanFace([1, 50 * 3]) }, // face 6
-];
-
-const directions = lines
-    .at(-1)
-    .trim()
-    .match(/([\d]+)|([RL])/g);
-
-// The final password is the sum of 1000 times the row, 4 times the column, and the facing.
-// Facing is 0 for right (>), 1 for down (v), 2 for left (<), and 3 for up (^)
-const result = new Map();
-let facing = 0;
-let position = start;
-let currentFace = 0;
-result.set(`${start[0]},${start[1]}`, facing);
-
-// function draw(position: string, d, facing) {
-//     const convert = [">", "v", "<", "^"];
-
-//     function generateVicinity(position: string) {
-//         const [, column, row] = position
-//             .match(/^(-?\d+),(-?\d+)/)
-//             .map(n => parseInt(n));
-//         const trueY = row - 1;
-//         const trueX = column - 1;
-//         const vicinity = [];
-//         for (let y = trueY - 5; y < trueY + 5; y++) {
-//             const row = [];
-//             for (let x = trueX - 5; x < trueX + 5; x++) {
-//                 if (!mapStrings[y]) continue;
-//                 if (!mapStrings[y][x]) continue;
-//                 let symbol = mapStrings[y][x];
-//                 if (symbol === "." && result.has(`${x + 1},${y + 1}`))
-//                     symbol = convert[result.get(`${x + 1},${y + 1}`)];
-//                 row.push(symbol);
-//             }
-//             vicinity.push(row);
-//         }
-//         return vicinity;
-//     }
-
-//     console.log("command: ", d);
-//     console.log("currrently facing: ", convert[facing]);
-
-//     generateVicinity(position).forEach(row => {
-//         console.log(row.join(""));
-//     });
-//     console.log("\n");
-// }
-
-for (const d of directions) {
-    if (d === "R") {
-        if (facing === 3) facing = 0;
-        else facing++;
-    } else if (d === "L") {
-        if (facing === 0) facing = 3;
-        else facing--;
-    } else {
-        let steps = parseInt(d);
-        while (steps) {
-            const [x, y] = position;
-            const face = cubeFaces[currentFace].face;
-            const borderX = cubeFaces[currentFace].border.x;
-            const borderY = cubeFaces[currentFace].border.y;
-
-            const next = getNeighbours(x, y)[facing];
-            const symbol = face.get(`${next[0]},${next[1]}`);
-            console.log("next: ", next);
-            console.log("next symbol: ", face.get(`${next[0]},${next[1]}`));
-
-            if (symbol === "#") break;
-            else if (symbol === ".") position = next;
-            else {
-                console.log("yoyoy");
-                if (
-                    next[0] > borderX.max ||
-                    next[0] < borderX.min ||
-                    next[1] > borderY.max ||
-                    next[1] < borderY.min
-                ) {
-                    const [newFace, newFacing] = wrap[currentFace][facing];
-                    if (
-                        cubeFaces[newFace].face.get(`${next[0]},${next[1]}`) ===
-                        "#"
-                    )
-                        break;
-                    facing = newFacing ? newFacing : facing;
-                    currentFace = newFace;
-                    position = next;
-                }
-            }
-            result.set(`${position[0]},${position[1]}`, facing);
-            steps--;
+function parseTiles(input: string[]): Map<string, {}> {
+    const map = new Map();
+    for (let y = 0; y < input.length; y++) {
+        for (let x = 0; x < input[y].length; x++) {
+            const cell = input[y][x];
+            if (cell !== " ")
+                map.set(`${x},${y}`, { x: x, y: y, canWalk: cell === "." });
+            if (!topLeft && cell === ".") topLeft = { x: x, y: y };
         }
     }
+    return map;
 }
-const [column, row] = position;
 
-console.log(column, row, facing);
+function partTwo(faceSize = 50) {
+    const tiles = parseTiles(cube);
 
-console.log(1000 * row + 4 * column + facing);
+    const scaleIJ = faceSize - 1;
+    const scaleK = faceSize + 1;
+    const startingPosition: Vector = { x: -scaleIJ, y: -scaleIJ, z: -scaleK };
+    const startingDirection: Vector = { x: -2, y: 0, z: 0 };
+
+    const start: Info = {
+        point: topLeft,
+        i: { x: 1, y: 0, z: 0 },
+        j: { x: 0, y: 1, z: 0 },
+        k: { x: 0, y: 0, z: 1 },
+    };
+
+    const q = [start];
+    const visited: Set<string> = new Set(JSON.stringify(topLeft));
+    const points: Map<string, Info> = new Map()
+
+    while (q.length) {
+        
+    }
+}
+
+console.log({ x: 1, y: 2 }.toString());
 
 export function solution() {
     return;
