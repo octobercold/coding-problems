@@ -1,6 +1,10 @@
 import { fileReader } from "./utils/fileReader";
 const lines = fileReader(22);
 const cube = lines.slice(0, -2);
+const directions = lines
+    .at(-1)
+    .trim()
+    .match(/([\d]+)|([RL])/g);
 
 class Point {
     constructor(public x: number, public y: number) {}
@@ -48,14 +52,22 @@ class Info {
 
 let topLeft: Point;
 
-function parseTiles(input: string[]): Map<string, {}> {
+function parseTiles(
+    input: string[]
+): Map<string, { point: Point; canWalk: boolean }> {
     const map = new Map();
     for (let y = 0; y < input.length; y++) {
         for (let x = 0; x < input[y].length; x++) {
             const cell = input[y][x];
-            if (cell !== " ")
-                map.set(`${x},${y}`, { x: x, y: y, canWalk: cell === "." });
-            if (!topLeft && cell === ".") topLeft = new Point(x, y);
+            if (cell !== " ") {
+                const newPoint = new Point(x, y);
+                map.set(JSON.stringify(newPoint), {
+                    point: newPoint,
+                    canWalk: cell === ".",
+                });
+
+                if (!topLeft && cell === ".") topLeft = newPoint;
+            }
         }
     }
     return map;
@@ -66,6 +78,7 @@ function partTwo(faceSize = 50) {
 
     const scaleIJ = faceSize - 1;
     const scaleK = faceSize + 1;
+
     const startingPosition = new Vector(-scaleIJ, -scaleIJ, -scaleK);
     const startingDirection = new Vector(-2, 0, 0);
 
@@ -85,15 +98,13 @@ function partTwo(faceSize = 50) {
 
         for (let x = 0; x < faceSize; x++) {
             for (let y = 0; y < faceSize; y++) {
-                const key = vectorSum(
-                    vectorSum(
-                        multiply(info.i, 2 * x - scaleIJ),
-                        multiply(info.j, 2 * y - scaleIJ)
-                    ),
-                    multiply(info.k, -scaleK)
-                );
+                const key = info.i
+                    .multiply(2 * x - scaleIJ)
+                    .vectorSum(info.j.multiply(2 * y - scaleIJ))
+                    .vectorSum(info.k.multiply(-scaleK));
+
                 points.set(JSON.stringify(key), {
-                    point: pointSum(info.point, { x: x, y: y }),
+                    point: info.point.pointSum(new Point(x, y)),
                     i: info.i,
                     j: info.j,
                     k: info.k,
@@ -101,7 +112,59 @@ function partTwo(faceSize = 50) {
             }
         }
 
-        const neighbours = [{}];
+        const neighbours = [
+            new Info(
+                info.point.pointSum(new Point(-faceSize, 0)),
+                info.j.vectorCross(info.i),
+                info.j,
+                info.j.vectorCross(info.k)
+            ),
+            new Info(
+                info.point.pointSum(new Point(faceSize, 0)),
+                info.i.vectorCross(info.j),
+                info.j,
+                info.k.vectorCross(info.j)
+            ),
+            new Info(
+                info.point.pointSum(new Point(0, -faceSize)),
+                info.i,
+                info.j.vectorCross(info.i),
+                info.k.vectorCross(info.i)
+            ),
+            new Info(
+                info.point.pointSum(new Point(0, faceSize)),
+                info.i,
+                info.i.vectorCross(info.j),
+                info.i.vectorCross(info.k)
+            ),
+        ];
+
+        neighbours.forEach(next => {
+            if (
+                tiles.has(JSON.stringify(next.point)) &&
+                !visited.has(JSON.stringify(next.point))
+            ) {
+                q.push(next);
+                visited.add(JSON.stringify(next.point));
+            }
+        });
+    }
+
+    let position = startingPosition;
+    let direction = startingDirection;
+
+    for (const d of directions) {
+        if (d === "R") {
+            direction = direction.vectorCross(
+                points.get(JSON.stringify(position)).k
+            );
+        } else if (d === "L") {
+            direction = direction.vectorCross(
+                points.get(JSON.stringify(position)).k.vectorCross(direction)
+            );
+        } else {
+            const next = position.vectorSum(direction);
+        }
     }
 }
 
