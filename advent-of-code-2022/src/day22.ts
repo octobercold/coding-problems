@@ -2,49 +2,48 @@ import { fileReader } from "./utils/fileReader";
 const lines = fileReader(22);
 const cube = lines.slice(0, -2);
 
-interface Point {
-    x: number;
-    y: number;
+class Point {
+    constructor(public x: number, public y: number) {}
+
+    pointSum(other: Point): Point {
+        return new Point(this.x + other.x, this.y + other.y);
+    }
+    clockwise(point: Point): Point {
+        return new Point(-this.y, this.x);
+    }
+    counterClockwise(point: Point): Point {
+        return new Point(this.y, -this.x);
+    }
+    score(): number {
+        return 1000 * (this.y + 1) + 4 * (this.x + 1);
+    }
 }
 
-interface Vector {
-    x: number;
-    y: number;
-    z: number;
+class Vector {
+    constructor(public x: number, public y: number, public z: number) {}
+
+    multiply(k: number): Vector {
+        return new Vector(this.x * k, this.y * k, this.z * k);
+    }
+    vectorSum(other: Vector): Vector {
+        return new Vector(this.x + other.x, this.y + other.y, this.z + other.z);
+    }
+    vectorCross(other: Vector): Vector {
+        return new Vector(
+            this.y * other.z - this.z * other.y,
+            this.z * other.x - this.x * other.z,
+            this.x * other.y - this.y * other.x
+        );
+    }
 }
 
-interface Info {
-    point: Point;
-    i: Vector;
-    j: Vector;
-    k: Vector;
-}
-
-function pointsSum(point1: Point, point2: Point): Point {
-    return { x: point1.x + point2.x, y: point1.y + point2.y };
-}
-function clockwise(point: Point): Point {
-    return { x: -point.y, y: point.x };
-}
-function counterClockwise(point: Point): Point {
-    return { x: point.y, y: -point.x };
-}
-function score(point: Point): number {
-    return 1000 * (point.y + 1) + 4 * (point.x + 1);
-}
-
-function multiply(v: Vector, k: number): Vector {
-    return { x: v.x * k, y: v.y * k, z: v.z * k };
-}
-function vectorsSum(a: Vector, b: Vector): Vector {
-    return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
-}
-function vectorsCross(a: Vector, b: Vector): Vector {
-    return {
-        x: a.y * b.z - a.z * b.y,
-        y: a.z * b.x - a.x * b.z,
-        z: a.x * b.y - a.y * b.x,
-    };
+class Info {
+    constructor(
+        public point: Point,
+        public i: Vector,
+        public j: Vector,
+        public k: Vector
+    ) {}
 }
 
 let topLeft: Point;
@@ -56,7 +55,7 @@ function parseTiles(input: string[]): Map<string, {}> {
             const cell = input[y][x];
             if (cell !== " ")
                 map.set(`${x},${y}`, { x: x, y: y, canWalk: cell === "." });
-            if (!topLeft && cell === ".") topLeft = { x: x, y: y };
+            if (!topLeft && cell === ".") topLeft = new Point(x, y);
         }
     }
     return map;
@@ -67,22 +66,42 @@ function partTwo(faceSize = 50) {
 
     const scaleIJ = faceSize - 1;
     const scaleK = faceSize + 1;
-    const startingPosition: Vector = { x: -scaleIJ, y: -scaleIJ, z: -scaleK };
-    const startingDirection: Vector = { x: -2, y: 0, z: 0 };
+    const startingPosition = new Vector(-scaleIJ, -scaleIJ, -scaleK);
+    const startingDirection = new Vector(-2, 0, 0);
 
-    const start: Info = {
-        point: topLeft,
-        i: { x: 1, y: 0, z: 0 },
-        j: { x: 0, y: 1, z: 0 },
-        k: { x: 0, y: 0, z: 1 },
-    };
+    const start = new Info(
+        topLeft,
+        new Vector(1, 0, 0),
+        new Vector(0, 1, 0),
+        new Vector(0, 0, 1)
+    );
 
     const q = [start];
     const visited: Set<string> = new Set(JSON.stringify(topLeft));
-    const points: Map<string, Info> = new Map()
+    const points: Map<string, Info> = new Map();
 
     while (q.length) {
-        
+        const info: Info = q.shift();
+
+        for (let x = 0; x < faceSize; x++) {
+            for (let y = 0; y < faceSize; y++) {
+                const key = vectorSum(
+                    vectorSum(
+                        multiply(info.i, 2 * x - scaleIJ),
+                        multiply(info.j, 2 * y - scaleIJ)
+                    ),
+                    multiply(info.k, -scaleK)
+                );
+                points.set(JSON.stringify(key), {
+                    point: pointSum(info.point, { x: x, y: y }),
+                    i: info.i,
+                    j: info.j,
+                    k: info.k,
+                });
+            }
+        }
+
+        const neighbours = [{}];
     }
 }
 
