@@ -4,7 +4,15 @@ const cube = lines.slice(0, -2);
 const directions = lines
     .at(-1)
     .trim()
-    .match(/([\d]+)|([RL])/g);
+    .replace(/R/g, " R ")
+    .replace(/L/g, " L ")
+    .split(" ")
+    .map(c => {
+        return isNaN(+c) ? c : "F".repeat(parseInt(c)).split("");
+    })
+    .flat();
+
+console.log("DIRECTIONS: ", directions);
 
 class Point {
     constructor(public x: number, public y: number) {}
@@ -12,10 +20,10 @@ class Point {
     pointSum(other: Point): Point {
         return new Point(this.x + other.x, this.y + other.y);
     }
-    clockwise(point: Point): Point {
+    clockwise(): Point {
         return new Point(-this.y, this.x);
     }
-    counterClockwise(point: Point): Point {
+    counterClockwise(): Point {
         return new Point(this.y, -this.x);
     }
     score(): number {
@@ -75,6 +83,7 @@ function parseTiles(
 
 function partTwo(faceSize = 50) {
     const tiles = parseTiles(cube);
+    console.log(tiles);
 
     const scaleIJ = faceSize - 1;
     const scaleK = faceSize + 1;
@@ -94,7 +103,7 @@ function partTwo(faceSize = 50) {
     const points: Map<string, Info> = new Map();
 
     while (q.length) {
-        const info: Info = q.shift();
+        const info = q.shift();
 
         for (let x = 0; x < faceSize; x++) {
             for (let y = 0; y < faceSize; y++) {
@@ -103,12 +112,15 @@ function partTwo(faceSize = 50) {
                     .vectorSum(info.j.multiply(2 * y - scaleIJ))
                     .vectorSum(info.k.multiply(-scaleK));
 
-                points.set(JSON.stringify(key), {
-                    point: info.point.pointSum(new Point(x, y)),
-                    i: info.i,
-                    j: info.j,
-                    k: info.k,
-                });
+                points.set(
+                    JSON.stringify(key),
+                    new Info(
+                        info.point.pointSum(new Point(x, y)),
+                        info.i,
+                        info.j,
+                        info.k
+                    )
+                );
             }
         }
 
@@ -154,6 +166,9 @@ function partTwo(faceSize = 50) {
     let direction = startingDirection;
 
     for (const d of directions) {
+        console.log("command: ", d);
+        console.log("position: ", position);
+        console.log("direction: ", direction);
         if (d === "R") {
             direction = direction.vectorCross(
                 points.get(JSON.stringify(position)).k
@@ -164,11 +179,44 @@ function partTwo(faceSize = 50) {
             );
         } else {
             const next = position.vectorSum(direction);
+            console.log("next:", next);
+            const nextKey = JSON.stringify(next);
+            if (points.has(nextKey)) {
+                if (
+                    tiles.get(JSON.stringify(points.get(nextKey).point)).canWalk
+                ) {
+                    position = next;
+                }
+            } else {
+                const wrapDirection = points
+                    .get(JSON.stringify(position))
+                    .k.multiply(2);
+                const wrapPosition = next.vectorSum(wrapDirection);
+                const wrapKey = JSON.stringify(wrapPosition);
+                console.log("wrapKey: ", wrapKey);
+                if (
+                    tiles.get(JSON.stringify(points.get(wrapKey).point)).canWalk
+                ) {
+                    position = wrapPosition;
+                    direction = wrapDirection;
+                }
+            }
         }
     }
+
+    const info = points.get(JSON.stringify(position));
+    return (
+        info.point.score() +
+        [
+            info.i.multiply(2),
+            info.j.multiply(2),
+            info.i.multiply(-2),
+            info.j.multiply(-2),
+        ].indexOf(direction)
+    );
 }
 
-console.log({ x: 1, y: 2 }.toString());
+console.log("part two solution: ", partTwo(4));
 
 export function solution() {
     return;
