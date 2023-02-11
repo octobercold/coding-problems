@@ -1,18 +1,16 @@
-import { NewLineKind } from "typescript";
+import { isConstructorDeclaration } from "typescript";
 import { fileReader } from "./utils/fileReader";
 const lines = fileReader(23);
 
 class Point {
-    static convert = {
-        N: ["NW", "N", "NE"],
-        S: ["SW", "S", "SE"],
-        W: ["NW", "W", "SW"],
-        E: ["NE", "E", "SE"],
-    };
-    order: string[];
-    constructor(public x: number, public y: number, public val?: string) {
-        this.order = ["N", "S", "W", "E"];
-        this.val === undefined ? null : val;
+    order: string[][];
+    constructor(public x: number, public y: number) {
+        this.order = [
+            ["NW", "N", "NE"],
+            ["SW", "S", "SE"],
+            ["NW", "W", "SW"],
+            ["NE", "E", "SE"],
+        ];
     }
 
     stringify() {
@@ -33,10 +31,19 @@ class Point {
     }
 
     move(next: Point) {
-        next.val = "#";
-        map.set(next.stringify(), next);
-        this.val = ".";
+        this.x = next.x;
+        this.y = next.y;
+        [this.order[0], this.order[3]] = [this.order[3], this.order[0]];
     }
+}
+
+const border = [+Infinity, -Infinity, +Infinity, -Infinity];
+
+function updateBorder(elf: Point) {
+    border[0] = Math.min(border[0], elf.x);
+    border[1] = Math.max(border[1], elf.x);
+    border[2] = Math.min(border[2], elf.y);
+    border[3] = Math.max(border[3], elf.y);
 }
 
 const map: Map<string, Point> = new Map();
@@ -44,33 +51,86 @@ const elfs: Point[] = [];
 
 for (let y = 0; y < lines.length; y++) {
     for (let x = 0; x < lines[y].length; x++) {
-        const newPoint = new Point(x, y, lines[y][x]);
-        map.set(newPoint.stringify(), newPoint);
-        if (lines[y][x] === "#") elfs.push(newPoint);
+        const newElf = new Point(x, y);
+
+        if (lines[y][x] === "#") {
+            map.set(newElf.stringify(), newElf);
+            elfs.push(newElf);
+            updateBorder(newElf);
+        }
     }
 }
+
+console.log("elfs: ", elfs);
 
 function playRound() {
+    const proposedMoves: Map<string, Point[]> = new Map();
+
     for (let i = 0; i < elfs.length; i++) {
         const neighbours = elfs[i].neighbours();
-        let next: string;
+        let next: Point;
         let thereIsNeighbour = false;
-        for (const direction of elfs[i].order) {
+
+        for (const directions of elfs[i].order) {
+            const first = neighbours[directions[0]];
+            const second = neighbours[directions[1]];
+            const third = neighbours[directions[2]];
             if (
-                map.get(Point.convert[direction][0].stringify()).val === "#" ||
-                map.get(Point.convert[direction][1].stringify()).val === "#" ||
-                map.get(Point.convert[direction][2].stringify()).val === "#"
+                map.has(first.stringify()) ||
+                map.has(second.stringify()) ||
+                map.has(third.stringify())
             )
                 thereIsNeighbour = true;
-            else next = direction;
+            else next = second;
         }
         if (next && thereIsNeighbour) {
-            elfs[i].move(neighbours[next]);
-            elfs[i] = neighbours[next];
+            const val = proposedMoves.get(next.stringify());
+            if (val !== undefined) {
+                proposedMoves.set(next.stringify(), [...val, elfs[i]]);
+            } else {
+                proposedMoves.set(next.stringify(), [next, elfs[i]]);
+            }
         }
+    }
+
+    for (const [, value] of proposedMoves) {
+        if (value.length < 3) {
+            const [next, elf] = value;
+            map.delete(elf.stringify());
+            elf.move(next);
+            map.set(elf.stringify(), elf);
+            updateBorder(elf);
+        }
+    }
+    return;
+}
+
+function drawMap() {
+    const [xmin, xmax, ymin, ymax] = border;
+    for (let y = ymin; y <= ymax; y++) {
+        let row = "";
+        for (let x = xmin; x <= xmax; x++) {
+            if (map.has(`${x},${y}`)) row += "#";
+            else row += ".";
+        }
+        console.log(row);
     }
 }
 
-function solution() {
-    return;
+console.log(border);
+
+function partOne(rounds = 2) {
+    console.log("== Initial State ==\n");
+    drawMap();
+    for (let i = 1; i <= rounds; i++) {
+        console.log("\n\n== End of Round ", i, " ==\n");
+        playRound();
+        drawMap();
+    }
 }
+
+partOne();
+
+export const solution = () => {
+    return;
+};
