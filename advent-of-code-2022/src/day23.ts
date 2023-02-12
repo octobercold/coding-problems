@@ -1,4 +1,3 @@
-import { isConstructorDeclaration } from "typescript";
 import { fileReader } from "./utils/fileReader";
 const lines = fileReader(23);
 
