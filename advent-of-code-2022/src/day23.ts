@@ -33,7 +33,6 @@ class Point {
     move(next: Point) {
         this.x = next.x;
         this.y = next.y;
-        console.log("new order:", this.order);
     }
 
     changeOrder() {
@@ -65,8 +64,6 @@ for (let y = 0; y < lines.length; y++) {
     }
 }
 
-console.log("elfs: ", elfs);
-
 function playRound() {
     const proposedMoves: Map<string, Point[]> = new Map();
 
@@ -83,9 +80,9 @@ function playRound() {
                 map.has(first.stringify()) ||
                 map.has(second.stringify()) ||
                 map.has(third.stringify())
-            )
+            ) {
                 thereIsNeighbour = true;
-            else if (!next) {
+            } else if (!next) {
                 next = second;
             }
         }
@@ -100,25 +97,26 @@ function playRound() {
         elfs[i].changeOrder();
     }
 
-    console.log("<< proposed moves >> \n");
-    for (const [key, value] of proposedMoves) {
-        if (value.length > 2) {
-            console.log(value, "will not move");
-            continue;
-        }
-        console.log("proposed cooradinate: ", key);
-        const [next, elf] = value;
-        console.log(
-            "NEXT: x: ",
-            next.x,
-            " y: ",
-            next.y,
-            " order: ",
-            next.order
-        );
-        console.log("ELF: x: ", elf.x, " y: ", elf.y, " order: ", elf.order);
-    }
-    console.log("\n\n<< end of proposed moves >>\n");
+    // console.log("<< proposed moves >> \n");
+    // for (const [key, value] of proposedMoves) {
+    //     if (value.length > 2) {
+    //         console.log(value, "will not move");
+    //         continue;
+    //     }
+    //     console.log("proposed cooradinate: ", key);
+    //     const [next, elf] = value;
+    //     console.log(
+    //         "NEXT: x: ",
+    //         next.x,
+    //         " y: ",
+    //         next.y,
+    //         " order: ",
+    //         next.order
+    //     );
+    //     console.log("ELF: x: ", elf.x, " y: ", elf.y, " order: ", elf.order);
+    // }
+    // console.log("\n\n<< end of proposed moves >>\n");
+    if (proposedMoves.size === 0) return true;
     for (const [, value] of proposedMoves) {
         if (value.length < 3) {
             const [next, elf] = value;
@@ -128,7 +126,7 @@ function playRound() {
             updateBorder(elf);
         }
     }
-    return;
+    return proposedMoves.size;
 }
 
 function drawMap() {
@@ -143,15 +141,13 @@ function drawMap() {
     }
 }
 
-console.log(border);
-
 function partOne(rounds = 10) {
-    console.log("== Initial State ==\n");
-    drawMap();
+    //console.log("== Initial State ==\n");
+    //drawMap();
     for (let i = 1; i <= rounds; i++) {
-        console.log("\n\n== End of Round ", i, " ==\n");
+        //console.log("\n\n== End of Round ", i, " ==\n");
         playRound();
-        drawMap();
+        //drawMap();
     }
     border = [+Infinity, -Infinity, +Infinity, -Infinity];
     for (const [, value] of map) {
@@ -162,9 +158,18 @@ function partOne(rounds = 10) {
     return (xmax - xmin + 1) * (ymax - ymin + 1) - elfs.length;
 }
 
-const res = partOne();
-console.log("res: ", res);
+function partTwo() {
+    let roundsPlayed = 10;
+    while (true) {
+        const res = playRound();
+        roundsPlayed++;
+        if (res === true) break;
+        //else console.log("number of proposed position: ", res);
+    }
+    return roundsPlayed;
+}
 
 export const solution = () => {
-    return;
+    console.log("Part one solution: ", partOne());
+    console.log("part two solution: ", partTwo());
 };
