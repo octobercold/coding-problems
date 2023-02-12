@@ -41,7 +41,7 @@ class Point {
     }
 }
 
-const border = [+Infinity, -Infinity, +Infinity, -Infinity];
+let border = [+Infinity, -Infinity, +Infinity, -Infinity];
 
 function updateBorder(elf: Point) {
     border[0] = Math.min(border[0], elf.x);
@@ -153,9 +153,17 @@ function partOne(rounds = 10) {
         playRound();
         drawMap();
     }
+    border = [+Infinity, -Infinity, +Infinity, -Infinity];
+    for (const [, value] of map) {
+        updateBorder(value);
+    }
+    const [xmin, xmax, ymin, ymax] = border;
+
+    return (xmax - xmin + 1) * (ymax - ymin + 1) - elfs.length;
 }
 
-partOne();
+const res = partOne();
+console.log("res: ", res);
 
 export const solution = () => {
     return;
