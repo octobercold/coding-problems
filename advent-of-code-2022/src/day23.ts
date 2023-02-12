@@ -33,7 +33,11 @@ class Point {
     move(next: Point) {
         this.x = next.x;
         this.y = next.y;
-        [this.order[0], this.order[3]] = [this.order[3], this.order[0]];
+        console.log("new order:", this.order);
+    }
+
+    changeOrder() {
+        this.order.push(this.order.shift());
     }
 }
 
@@ -81,7 +85,9 @@ function playRound() {
                 map.has(third.stringify())
             )
                 thereIsNeighbour = true;
-            else next = second;
+            else if (!next) {
+                next = second;
+            }
         }
         if (next && thereIsNeighbour) {
             const val = proposedMoves.get(next.stringify());
@@ -91,8 +97,28 @@ function playRound() {
                 proposedMoves.set(next.stringify(), [next, elfs[i]]);
             }
         }
+        elfs[i].changeOrder();
     }
 
+    console.log("<< proposed moves >> \n");
+    for (const [key, value] of proposedMoves) {
+        if (value.length > 2) {
+            console.log(value, "will not move");
+            continue;
+        }
+        console.log("proposed cooradinate: ", key);
+        const [next, elf] = value;
+        console.log(
+            "NEXT: x: ",
+            next.x,
+            " y: ",
+            next.y,
+            " order: ",
+            next.order
+        );
+        console.log("ELF: x: ", elf.x, " y: ", elf.y, " order: ", elf.order);
+    }
+    console.log("\n\n<< end of proposed moves >>\n");
     for (const [, value] of proposedMoves) {
         if (value.length < 3) {
             const [next, elf] = value;
@@ -119,7 +145,7 @@ function drawMap() {
 
 console.log(border);
 
-function partOne(rounds = 2) {
+function partOne(rounds = 10) {
     console.log("== Initial State ==\n");
     drawMap();
     for (let i = 1; i <= rounds; i++) {
