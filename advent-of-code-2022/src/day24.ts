@@ -28,15 +28,26 @@ class Blizzard extends Point {
     }
     move() {
         const [x, y] = Blizzard.convert[this.symbol];
-        blizzardsSet.delete(this.stringify());
+        const oldSet = blizzardsMap.get(this.stringify());
+        oldSet.delete(this);
+        if (oldSet.size === 0) blizzardsMap.delete(this.stringify());
+
         this.x += x;
         this.y += y;
         const w = wall.get(this.stringify());
         if (w !== undefined) {
-            this.x = this.symbol === "<" || this.symbol === ">" ? x : this.x;
-            this.y = this.symbol === "^" || this.symbol === "v" ? y : this.y;
+            if (this.symbol === "<") this.x = lines[0].length - 2;
+            else if (this.symbol === ">") this.x = x;
+            else if (this.symbol === "^") this.y = lines.length - 2;
+            else if (this.symbol === "v") this.y = y;
         }
-        blizzardsSet.add(this.stringify());
+        const blizzardSet = blizzardsMap.get(this.stringify());
+        if (blizzardSet) blizzardSet.add(this);
+        else
+            blizzardsMap.set(
+                this.stringify(),
+                (new Set() as Set<Blizzard>).add(this)
+            );
         //console.log("new coordinate: ", this.x, this.y);
     }
 }
@@ -51,7 +62,7 @@ const start = new Me(1, 0);
 const end = new Me(lines.at(-1).length - 2, lines.length - 1);
 
 const wall: Map<string, Point> = new Map();
-const blizzardsSet: Set<string> = new Set();
+const blizzardsMap: Map<string, Set<Blizzard>> = new Map();
 const blizzards: Blizzard[] = [];
 
 for (let y = 0; y < lines.length; y++) {
@@ -62,7 +73,9 @@ for (let y = 0; y < lines.length; y++) {
             wall.set(newWall.stringify(), newWall);
         } else if (val !== ".") {
             const newBlizzard = new Blizzard(x, y, val);
-            blizzardsSet.add(newBlizzard.stringify());
+            const blizzardSet: Set<Blizzard> = new Set();
+            blizzardSet.add(newBlizzard);
+            blizzardsMap.set(newBlizzard.stringify(), blizzardSet);
             blizzards.push(newBlizzard);
         }
     }
@@ -74,8 +87,11 @@ function drawMap() {
         for (let x = 0; x < lines[y].length; x++) {
             const key = `${x},${y}`;
             if (wall.has(key)) row += "#";
-            else if (blizzardsSet.has(key)) row += "X";
-            else row += ".";
+            else if (blizzardsMap.has(key)) {
+                const set = blizzardsMap.get(key);
+                if (set.size > 1) row += set.size;
+                else row += [...set][0].symbol;
+            } else row += ".";
         }
         console.log(row);
     }
