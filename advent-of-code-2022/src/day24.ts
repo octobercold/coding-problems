@@ -24,7 +24,6 @@ blizzards.forEach(b => {
 });
 
 function drawBasin() {
-    console.log("\n\n=== BLIZZARD BASIN ===\n");
     for (let y = 0; y < blizzardBasin.length; y++) {
         let row = "";
         for (let x = 0; x < blizzardBasin[y].length; x++) {
@@ -63,9 +62,13 @@ function tick() {
     });
 }
 
-drawBasin();
-tick();
-drawBasin();
+// console.log("=== INITIAL STATE ===\n");
+// drawBasin();
+// for (let i = 1; i <= 10; i++) {
+//     tick();
+//     console.log(`\n\n=== MINUTE ${i} ===\n`);
+//     drawBasin();
+// }
 
 export const solution = () => {
     return;
